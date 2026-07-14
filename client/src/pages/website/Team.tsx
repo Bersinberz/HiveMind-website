@@ -1,70 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "../../compoenets/Navbar";
+import TeammanagemntServices, { type TeamMember } from "../../services/admin/TeammanagemntServices";
 
-interface StaticTeamMember {
-    id: string;
-    fullname: string;
-    department: string;
-    year: string;
-    Linkedin?: string;
-    github?: string;
-    pic?: string;
-}
-
-const mockTeam: StaticTeamMember[] = [
-    {
-        id: "1",
-        fullname: "Rahul S.",
-        department: "Generative AI",
-        year: "3rd",
-        Linkedin: "https://linkedin.com",
-        github: "https://github.com",
-        pic: "/bersin_password_size.jpg",
-    },
-    {
-        id: "2",
-        fullname: "Dr. Anitha P.",
-        department: "Deep Learning",
-        year: "Faculty Mentor",
-        Linkedin: "https://linkedin.com",
-        pic: "anto.jpeg",
-    },
-    {
-        id: "3",
-        fullname: "Priya K.",
-        department: "MLOps & Infra",
-        year: "Alumni",
-        github: "https://github.com",
-        pic: "/bersin_password_size.jpg",
-    },
-    {
-        id: "4",
-        fullname: "Aditya Kumar",
-        department: "LLMs & RAG",
-        year: "3rd",
-        Linkedin: "https://linkedin.com",
-        github: "https://github.com",
-        pic: "/bersin_password_size.jpg",
-    },
-    {
-        id: "5",
-        fullname: "Sneha Reddy",
-        department: "Computer Vision",
-        year: "2nd",
-        Linkedin: "https://linkedin.com",
-        pic: "/bersin_password_size.jpg",
-    },
-    {
-        id: "6",
-        fullname: "Vikram Sen",
-        department: "AI Agents",
-        year: "4th",
-        github: "https://github.com",
-        pic: "/bersin_password_size.jpg",
-    }
-];
-
-const HexagonCard = ({ member }: { member: StaticTeamMember }) => {
+const HexagonCard = ({ member }: { member: TeamMember }) => {
     const [tiltStyle, setTiltStyle] = useState<React.CSSProperties>({});
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -131,11 +69,14 @@ const HexagonCard = ({ member }: { member: StaticTeamMember }) => {
                         <span className="text-base sm:text-lg font-extrabold text-gold-sweep uppercase tracking-wider block mb-1">
                             {member.fullname}
                         </span>
-                        <span className="text-xs sm:text-sm text-[#888888] uppercase tracking-widest block mb-4">
+                        <span className="text-xs sm:text-sm text-[#888888] uppercase tracking-widest block mb-2">
                             {member.department}
                         </span>
-                        <span className="text-[10px] sm:text-xs text-[#666666] uppercase tracking-widest block mb-6">
-                            {member.year !== "Faculty Mentor" && member.year !== "Alumni" ? `${member.year} Year` : member.year}
+                        <span className="text-[10px] sm:text-xs text-[#666666] uppercase tracking-widest block mb-1">
+                            {member.year} Year
+                        </span>
+                        <span className="text-[9px] text-[#555555] uppercase tracking-widest block mb-6">
+                            Batch {member.batch}
                         </span>
                         
                         {/* Social links with logos */}
@@ -177,6 +118,24 @@ const HexagonCard = ({ member }: { member: StaticTeamMember }) => {
 };
 
 export default function Team() {
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        TeammanagemntServices.getTeamMembers()
+            .then(res => {
+                if (res.success && res.members) {
+                    setTeamMembers(res.members);
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching team members:", err);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, []);
+
     return (
         <div className="min-h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden">
             {/* Ambient Background Glows */}
@@ -194,11 +153,22 @@ export default function Team() {
                         Core Lab Members
                     </h2>
 
-                    <div className="flex flex-wrap justify-center gap-8 md:gap-12 max-w-7xl w-full">
-                        {mockTeam.map(member => (
-                            <HexagonCard key={member.id} member={member} />
-                        ))}
-                    </div>
+                    {loading ? (
+                        <div className="py-20 flex flex-col items-center justify-center gap-4">
+                            <div className="w-12 h-12 rounded-full border-2 border-white/5 border-t-gold-primary animate-spin" />
+                            <span className="text-[10px] text-[#888888] uppercase tracking-widest font-black">Assembling Crew...</span>
+                        </div>
+                    ) : teamMembers.length === 0 ? (
+                        <div className="py-20 text-center">
+                            <span className="text-xs text-[#666666] uppercase tracking-widest block font-black">No team members found</span>
+                        </div>
+                    ) : (
+                        <div className="flex flex-wrap justify-center gap-8 md:gap-12 max-w-7xl w-full">
+                            {teamMembers.map(member => (
+                                <HexagonCard key={member._id} member={member} />
+                            ))}
+                        </div>
+                    )}
                 </section>
             </main>
 

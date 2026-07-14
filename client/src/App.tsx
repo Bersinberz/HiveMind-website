@@ -5,11 +5,14 @@ import Team from "./pages/website/Team";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TeamManagement from "./pages/admin/TeamManagement";
+import ProjectsManagement from "./pages/admin/ProjectsManagement";
+import NewMembersManagement from "./pages/admin/NewMembersManagement";
+import Projects from "./pages/website/Projects";
+import JoinHiveMind from "./pages/website/JoinHiveMind";
 import SplashScreen from "./compoenets/SplashScreen";
 import PageTransition from "./compoenets/PageTransition";
 
 export default function App() {
-    // Bypass splash screen for administrative routes
     const isAdminRoute = window.location.pathname.startsWith("/admin");
     const [showSplash, setShowSplash] = useState(!isAdminRoute);
 
@@ -22,6 +25,22 @@ export default function App() {
                     element={
                         <PageTransition>
                             <Home />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/projects"
+                    element={
+                        <PageTransition>
+                            <Projects />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/join"
+                    element={
+                        <PageTransition>
+                            <JoinHiveMind />
                         </PageTransition>
                     }
                 />
@@ -54,6 +73,22 @@ export default function App() {
                     element={
                         <PageTransition>
                             <TeamManagement />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/admin/projects"
+                    element={
+                        <PageTransition>
+                            <ProjectsManagement />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/admin/new-members"
+                    element={
+                        <PageTransition>
+                            <NewMembersManagement />
                         </PageTransition>
                     }
                 />

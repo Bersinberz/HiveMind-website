@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import authRoutes from "./routes/authRoutes";
 import teamRoutes from "./routes/teamRoutes";
+import projectRoutes from "./routes/projectRoutes";
+import newMemberRoutes from "./routes/newMemberRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +32,8 @@ app.use(cookieParser());
 // API Routes
 app.use("/api/v1/admin", authRoutes);
 app.use("/api/v1/team", teamRoutes);
+app.use("/api/v1/projects", projectRoutes);
+app.use("/api/v1/new-members", newMemberRoutes);
 
 // Health Check Route
 app.get("/health", (req, res) => {

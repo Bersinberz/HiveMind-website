@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Team from "../models/Team";
+import { deleteFromCloudinary } from "../utils/cloudinary";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
@@ -118,7 +119,13 @@ export const updateTeamMember = async (req: Request, res: Response) => {
             member.email = email;
         }
 
-        if (pic !== undefined) member.pic = pic || "";
+        let oldPicUrl = "";
+        if (pic !== undefined) {
+            if (pic !== member.pic && member.pic) {
+                oldPicUrl = member.pic;
+            }
+            member.pic = pic || "";
+        }
         if (department !== undefined) {
             if (!department) return res.status(400).json({ success: false, message: "Department is required." });
             member.department = department;
@@ -160,6 +167,12 @@ export const updateTeamMember = async (req: Request, res: Response) => {
 
         await member.save();
 
+        if (oldPicUrl) {
+            deleteFromCloudinary(oldPicUrl).catch(err => 
+                console.error("Error deleting old profile photo from Cloudinary:", err)
+            );
+        }
+
         return res.status(200).json({
             success: true,
             message: "Team member updated successfully.",
@@ -175,10 +188,21 @@ export const updateTeamMember = async (req: Request, res: Response) => {
 export const deleteTeamMember = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const deleted = await Team.findByIdAndDelete(id);
-        if (!deleted) {
+        const member = await Team.findById(id);
+        if (!member) {
             return res.status(404).json({ success: false, message: "Team member not found." });
         }
+
+        const picUrl = member.pic;
+
+        await Team.findByIdAndDelete(id);
+
+        if (picUrl) {
+            deleteFromCloudinary(picUrl).catch(err => 
+                console.error("Error deleting profile photo from Cloudinary:", err)
+            );
+        }
+
         return res.status(200).json({ success: true, message: "Team member deleted successfully." });
     } catch (error) {
         console.error("Delete Team Member Error: ", error);

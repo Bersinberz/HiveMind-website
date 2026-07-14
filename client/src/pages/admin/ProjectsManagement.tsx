@@ -3,29 +3,30 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import authService, { type AdminUser } from "../../services/admin/authService";
 import AdminLoader from "../../compoenets/AdminLoader";
-import TeammanagemntServices, { type TeamMember } from "../../services/admin/TeammanagemntServices";
+import Toast from "../../compoenets/Toast";
+import ProjectServices, { type Project } from "../../services/admin/ProjectServices";
 import axiosInstance from "../../services/axiosInstance";
 
-export default function TeamManagement() {
+export default function ProjectsManagement() {
     const navigate = useNavigate();
     const [admin, setAdmin] = useState<AdminUser | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // --- Team Management State ---
-    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-    const [loadingTeam, setLoadingTeam] = useState(false);
+    // --- Toast Alert State ---
+    const [toast, setToast] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
+
+    // --- Projects State ---
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [loadingProjects, setLoadingProjects] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedDept, setSelectedDept] = useState("");
-    const [selectedYear, setSelectedYear] = useState("");
-    const [selectedBatch, setSelectedBatch] = useState("");
+    const [selectedDomain, setSelectedDomain] = useState("");
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-    const [editingMemberId, setEditingMemberId] = useState("");
-    const [modalError, setModalError] = useState("");
+    const [editingProjectId, setEditingProjectId] = useState("");
 
-    // Image Cropper State
+    // Image Cropper State (16:9 Widescreen Aspect Ratio)
     const [isCropping, setIsCropping] = useState(false);
     const [cropSrc, setCropSrc] = useState("");
     const [zoom, setZoom] = useState(1.2);
@@ -39,27 +40,18 @@ export default function TeamManagement() {
     const [uploadProgress, setUploadProgress] = useState(0);
 
     // Deletion Modal State
-    const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
-
-    const deleteImageFromCloudinary = async (url: string) => {
-        if (!url || !url.includes("res.cloudinary.com")) return;
-        try {
-            await axiosInstance.post("/v1/admin/cloudinary/delete", { url });
-        } catch (err) {
-            console.error("Error deleting image from Cloudinary:", err);
-        }
-    };
+    const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
     const [formValues, setFormValues] = useState({
-        fullname: "",
-        email: "",
-        pic: "",
-        department: "",
-        section: "",
-        year: "1st" as "1st" | "2nd" | "3rd" | "4th",
-        Linkedin: "",
+        title: "",
+        description: "",
+        domain: "",
+        techStack: "", // Comma-separated in UI, parsed to array on submit
         github: "",
-        batch: "",
+        liveDemo: "",
+        thumbnail: "",
+        startDate: "",
+        endDate: "",
     });
 
     const handleCropMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -96,17 +88,18 @@ export default function TeamManagement() {
         setDragStart({ x: touch.clientX, y: touch.clientY });
     };
 
-    const fetchTeamMembers = async () => {
-        setLoadingTeam(true);
+    const fetchProjects = async () => {
+        setLoadingProjects(true);
         try {
-            const res = await TeammanagemntServices.getTeamMembers();
-            if (res.success && res.members) {
-                setTeamMembers(res.members);
+            const res = await ProjectServices.getProjects();
+            if (res.success && res.projects) {
+                setProjects(res.projects);
             }
         } catch (err) {
-            console.error("Error fetching team:", err);
+            console.error("Error fetching projects:", err);
+            setToast({ message: "Failed to fetch projects list.", type: "error" });
         } finally {
-            setLoadingTeam(false);
+            setLoadingProjects(false);
         }
     };
 
@@ -118,7 +111,7 @@ export default function TeamManagement() {
                 if (data.success && data.admin) {
                     setAdmin(data.admin);
                     setLoading(false);
-                    fetchTeamMembers();
+                    fetchProjects();
                 } else {
                     navigate("/admin/login");
                 }
@@ -132,7 +125,7 @@ export default function TeamManagement() {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) {
-                setModalError("Image file is too large. Please select a file smaller than 5MB.");
+                setToast({ message: "Image file too large (Max 5MB).", type: "error" });
                 return;
             }
             const reader = new FileReader();
@@ -154,42 +147,56 @@ export default function TeamManagement() {
         setCropSrc("");
     };
 
+    const deleteImageFromCloudinary = async (url: string) => {
+        if (!url || !url.includes("res.cloudinary.com")) return;
+        try {
+            await axiosInstance.post("/v1/admin/cloudinary/delete", { url });
+        } catch (err) {
+            console.error("Error deleting image from Cloudinary:", err);
+        }
+    };
+
     const openAddModal = () => {
         setModalMode("add");
-        setEditingMemberId("");
-        setModalError("");
+        setEditingProjectId("");
         setIsCropping(false);
         setCropSrc("");
         setFormValues({
-            fullname: "",
-            email: "",
-            pic: "",
-            department: "",
-            section: "",
-            year: "1st",
-            Linkedin: "",
+            title: "",
+            description: "",
+            domain: "",
+            techStack: "",
             github: "",
-            batch: "",
+            liveDemo: "",
+            thumbnail: "",
+            startDate: "",
+            endDate: "",
         });
         setIsModalOpen(true);
     };
 
-    const openEditModal = (member: TeamMember) => {
+    const formatDateForInput = (dateStr: string) => {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "";
+        return d.toISOString().split("T")[0];
+    };
+
+    const openEditModal = (project: Project) => {
         setModalMode("edit");
-        setEditingMemberId(member._id);
-        setModalError("");
+        setEditingProjectId(project._id);
         setIsCropping(false);
         setCropSrc("");
         setFormValues({
-            fullname: member.fullname,
-            email: member.email,
-            pic: member.pic || "",
-            department: member.department,
-            section: member.section,
-            year: member.year,
-            Linkedin: member.Linkedin || "",
-            github: member.github || "",
-            batch: member.batch,
+            title: project.title,
+            description: project.description,
+            domain: project.domain,
+            techStack: project.techStack.join(", "),
+            github: project.github,
+            liveDemo: project.liveDemo || "",
+            thumbnail: project.thumbnail || "",
+            startDate: formatDateForInput(project.startDate),
+            endDate: formatDateForInput(project.endDate),
         });
         setIsModalOpen(true);
     };
@@ -200,29 +207,30 @@ export default function TeamManagement() {
             img.src = cropSrc;
             img.onload = async () => {
                 const canvas = document.createElement("canvas");
-                canvas.width = 320;
-                canvas.height = 368;
+                // 16:9 Widescreen target resolution
+                canvas.width = 640;
+                canvas.height = 360;
                 const ctx = canvas.getContext("2d");
                 if (!ctx) return;
 
                 ctx.fillStyle = "#0c0c0e";
-                ctx.fillRect(0, 0, 320, 368);
+                ctx.fillRect(0, 0, 640, 360);
 
                 const wOrig = img.naturalWidth;
                 const hOrig = img.naturalHeight;
 
-                const scaleCover = Math.max(320 / wOrig, 368 / hOrig);
+                const scaleCover = Math.max(640 / wOrig, 360 / hOrig);
                 const wBase = wOrig * scaleCover;
                 const hBase = hOrig * scaleCover;
 
                 const wZoom = wBase * zoom;
                 const hZoom = hBase * zoom;
 
-                const x0 = (320 - wZoom) / 2;
-                const y0 = (368 - hZoom) / 2;
+                const x0 = (640 - wZoom) / 2;
+                const y0 = (360 - hZoom) / 2;
 
-                const canvasOffsetX = offsetX * (320 / 240);
-                const canvasOffsetY = offsetY * (368 / 276);
+                const canvasOffsetX = offsetX * (640 / 280);
+                const canvasOffsetY = offsetY * (360 / 157.5);
 
                 ctx.drawImage(img, x0 + canvasOffsetX, y0 + canvasOffsetY, wZoom, hZoom);
 
@@ -242,7 +250,7 @@ export default function TeamManagement() {
                     const formData = new FormData();
                     formData.append("file", base64);
                     formData.append("upload_preset", UPLOAD_PRESET);
-                    formData.append("folder", "HiveMind/Team images");
+                    formData.append("folder", "Projects");
 
                     const res = await axios.post(
                         `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
@@ -259,20 +267,21 @@ export default function TeamManagement() {
                     );
 
                     if (res.data && res.data.secure_url) {
-                        const oldPic = formValues.pic;
-                        setFormValues(prev => ({ ...prev, pic: res.data.secure_url }));
-                        if (oldPic) {
-                            deleteImageFromCloudinary(oldPic);
+                        const oldThumbnail = formValues.thumbnail;
+                        setFormValues(prev => ({ ...prev, thumbnail: res.data.secure_url }));
+                        if (oldThumbnail) {
+                            deleteImageFromCloudinary(oldThumbnail);
                         }
+                        setToast({ message: "Thumbnail uploaded successfully.", type: "success" });
                     } else {
-                        setModalError("Upload failed: No secure URL returned from Cloudinary.");
+                        setToast({ message: "Upload failed: No secure URL returned.", type: "error" });
                     }
                 } catch (err: any) {
                     console.error("Cloudinary upload error:", err);
-                    setModalError(
-                        err.response?.data?.error?.message ||
-                        "Failed to upload image to Cloudinary. Please verify your upload preset exists."
-                    );
+                    setToast({
+                        message: err.response?.data?.error?.message || "Cloudinary upload failed.",
+                        type: "error"
+                    });
                 } finally {
                     setIsUploading(false);
                     setUploadProgress(0);
@@ -281,15 +290,15 @@ export default function TeamManagement() {
         };
 
         return (
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center w-full">
                 <h3 className="text-base font-black uppercase tracking-wider text-white mb-2 w-full text-left">
-                    Crop Profile Photo
+                    Crop Project Thumbnail
                 </h3>
                 <p className="text-[10px] text-[#888888] mb-6 w-full text-left uppercase tracking-wider font-semibold">
-                    Drag the image to position it. Use the slider below to zoom.
+                    Drag the image to position it inside the 16:9 widescreen frame.
                 </p>
 
-                {/* Hexagonal Cropping Frame with Drag Controls */}
+                {/* 16:9 Rectangular Cropping Frame */}
                 <div
                     onMouseDown={handleCropMouseDown}
                     onMouseMove={handleCropMouseMove}
@@ -298,11 +307,10 @@ export default function TeamManagement() {
                     onTouchStart={handleCropTouchStart}
                     onTouchMove={handleCropTouchMove}
                     onTouchEnd={handleCropMouseUp}
-                    className="relative bg-black border border-white/10 overflow-hidden flex items-center justify-center shadow-lg cursor-move select-none"
+                    className="relative bg-black border border-white/10 overflow-hidden flex items-center justify-center shadow-lg cursor-move select-none rounded-xl"
                     style={{
-                        width: "240px",
-                        height: "276px",
-                        clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)"
+                        width: "280px",
+                        height: "157.5px"
                     }}
                 >
                     <img
@@ -361,54 +369,85 @@ export default function TeamManagement() {
 
     const handleModalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setModalError("");
 
-        if (formValues.fullname.trim().length < 3) {
-            setModalError("Full name must be at least 3 characters.");
+        // Validate basic fields
+        if (formValues.title.trim().length < 3) {
+            setToast({ message: "Project title must be at least 3 characters.", type: "error" });
+            return;
+        }
+        if (formValues.description.trim().length < 10) {
+            setToast({ message: "Project description must be at least 10 characters.", type: "error" });
+            return;
+        }
+        if (!formValues.techStack.trim()) {
+            setToast({ message: "Please provide at least one technology stack item.", type: "error" });
+            return;
+        }
+        if (!formValues.thumbnail) {
+            setToast({ message: "A project thumbnail is required.", type: "error" });
+            return;
+        }
+        if (!formValues.startDate || !formValues.endDate) {
+            setToast({ message: "Start and End dates are required.", type: "error" });
+            return;
+        }
+        if (new Date(formValues.startDate) > new Date(formValues.endDate)) {
+            setToast({ message: "Start date cannot be after end date.", type: "error" });
             return;
         }
 
-        // Enforce constraint: LinkedIn or GitHub profile link must be filled out
-        if (!formValues.Linkedin.trim() && !formValues.github.trim()) {
-            setModalError("At least one social profile link (LinkedIn or GitHub) must be provided.");
-            return;
-        }
+        // Tech stack array parsing
+        const parsedTech = formValues.techStack.split(",").map(t => t.trim()).filter(Boolean);
+
+        const projectPayload = {
+            ...formValues,
+            techStack: parsedTech,
+        };
 
         try {
             if (modalMode === "add") {
-                const res = await TeammanagemntServices.createTeamMember(formValues);
+                const res = await ProjectServices.createProject(projectPayload);
                 if (res.success) {
                     setIsModalOpen(false);
-                    fetchTeamMembers();
+                    setToast({ message: "Project created successfully.", type: "success" });
+                    fetchProjects();
                 } else {
-                    setModalError(res.message || "Failed to create team member.");
+                    setToast({ message: res.message || "Failed to create project.", type: "error" });
                 }
             } else {
-                const res = await TeammanagemntServices.updateTeamMember(editingMemberId, formValues);
+                const res = await ProjectServices.updateProject(editingProjectId, projectPayload);
                 if (res.success) {
                     setIsModalOpen(false);
-                    fetchTeamMembers();
+                    setToast({ message: "Project updated successfully.", type: "success" });
+                    fetchProjects();
                 } else {
-                    setModalError(res.message || "Failed to update team member.");
+                    setToast({ message: res.message || "Failed to update project.", type: "error" });
                 }
             }
         } catch (err: any) {
             console.error("Modal Submit Error:", err);
-            setModalError(err.response?.data?.message || "An error occurred while saving the member.");
+            setToast({
+                message: err.response?.data?.message || "An error occurred while saving.",
+                type: "error"
+            });
         }
     };
 
-    const executeDeleteMember = async (id: string) => {
+    const executeDeleteProject = async (id: string) => {
         try {
-            const res = await TeammanagemntServices.deleteTeamMember(id);
+            const res = await ProjectServices.deleteProject(id);
             if (res.success) {
-                fetchTeamMembers();
+                setToast({ message: "Project deleted successfully.", type: "success" });
+                fetchProjects();
             } else {
-                alert(res.message || "Failed to delete team member.");
+                setToast({ message: res.message || "Failed to delete project.", type: "error" });
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Delete Error:", err);
-            alert("An error occurred while deleting.");
+            setToast({
+                message: err.response?.data?.message || "An error occurred while deleting.",
+                type: "error"
+            });
         }
     };
 
@@ -480,23 +519,22 @@ export default function TeamManagement() {
 
     ];
 
-    const departments = Array.from(new Set(teamMembers.map(m => m.department))).filter(Boolean);
-    const batches = Array.from(new Set(teamMembers.map(m => m.batch))).filter(Boolean);
+    const domains = Array.from(new Set(projects.map(p => p.domain))).filter(Boolean);
 
-    const filteredMembers = teamMembers.filter(m => {
-        const matchesSearch =
-            m.fullname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            m.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const filteredProjects = projects.filter(p => {
+        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesDept = !selectedDept || m.department === selectedDept;
-        const matchesYear = !selectedYear || m.year === selectedYear;
-        const matchesBatch = !selectedBatch || m.batch === selectedBatch;
+        const matchesDomain = !selectedDomain || p.domain === selectedDomain;
 
-        return matchesSearch && matchesDept && matchesYear && matchesBatch;
+        return matchesSearch && matchesDomain;
     });
 
     return (
         <div className="min-h-screen bg-[#050505] flex text-white relative">
+            {/* Custom Toast Alert Component */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
             {/* Ambient Background Glows */}
             <div className="absolute top-[5%] right-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
             <div className="absolute bottom-[5%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
@@ -522,14 +560,14 @@ export default function TeamManagement() {
 
                     <nav className="space-y-1.5">
                         {navigationItems.map((item) => {
-                            const isActive = item.id === "team";
+                            const isActive = item.id === "projects";
                             return (
                                 <button
                                     key={item.id}
                                     onClick={() => navigate(item.path)}
                                     className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${isActive
-                                        ? "bg-gold-primary/10 border border-gold-primary/20 text-gold-primary [text-shadow:0_0_10px_rgba(255,193,7,0.25)] shadow-[0_4px_15px_rgba(255,193,7,0.05)]"
-                                        : "bg-transparent border border-transparent text-[#888888] hover:text-white hover:bg-white/[0.01]"
+                                            ? "bg-gold-primary/10 border border-gold-primary/20 text-gold-primary [text-shadow:0_0_10px_rgba(255,193,7,0.25)] shadow-[0_4px_15px_rgba(255,193,7,0.05)]"
+                                            : "bg-transparent border border-transparent text-[#888888] hover:text-white hover:bg-white/[0.01]"
                                         }`}
                                 >
                                     {item.icon}
@@ -572,26 +610,26 @@ export default function TeamManagement() {
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                                 <div>
                                     <h2 className="text-xl font-extrabold uppercase tracking-wider text-white">
-                                        Team Management
+                                        Projects Management
                                     </h2>
                                     <p className="text-xs text-[#888888] mt-1">
-                                        Manage SCAS AI Supercomputing Lab researchers, leads, and mentors.
+                                        Manage artificial intelligence research pipelines and student-led projects.
                                     </p>
                                 </div>
                                 <button
                                     onClick={openAddModal}
                                     className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black border-none py-2.5 px-5 text-xs font-extrabold tracking-widest uppercase rounded-full cursor-pointer shadow-[0_4px_15px_rgba(255,193,7,0.2)] transition-all duration-300 hover:scale-102 hover:shadow-[0_6px_20px_rgba(255,193,7,0.3)] active:scale-100"
                                 >
-                                    Add Member
+                                    Add Project
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 bg-white/[0.01] border border-white/5 p-4 rounded-2xl">
-                                <div className="flex flex-col gap-1.5 col-span-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 bg-white/[0.01] border border-white/5 p-4 rounded-2xl">
+                                <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
                                     <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Search</label>
                                     <input
                                         type="text"
-                                        placeholder="Search by name or email..."
+                                        placeholder="Search by title or description..."
                                         className="bg-white/[0.02] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -599,142 +637,109 @@ export default function TeamManagement() {
                                 </div>
 
                                 <div className="flex flex-col gap-1.5">
-                                    <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Department</label>
+                                    <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Domain</label>
                                     <select
                                         className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                        value={selectedDept}
-                                        onChange={(e) => setSelectedDept(e.target.value)}
+                                        value={selectedDomain}
+                                        onChange={(e) => setSelectedDomain(e.target.value)}
                                     >
-                                        <option value="">All Departments</option>
-                                        {departments.map(dept => (
-                                            <option key={dept} value={dept}>{dept}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Year</label>
-                                    <select
-                                        className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(e.target.value)}
-                                    >
-                                        <option value="">All Years</option>
-                                        <option value="1st">1st Year</option>
-                                        <option value="2nd">2nd Year</option>
-                                        <option value="3rd">3rd Year</option>
-                                        <option value="4th">4th Year</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Batch</label>
-                                    <select
-                                        className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                        value={selectedBatch}
-                                        onChange={(e) => setSelectedBatch(e.target.value)}
-                                    >
-                                        <option value="">All Batches</option>
-                                        {batches.map(batch => (
-                                            <option key={batch} value={batch}>{batch}</option>
+                                        <option value="">All Domains</option>
+                                        {domains.map(dom => (
+                                            <option key={dom} value={dom}>{dom}</option>
                                         ))}
                                     </select>
                                 </div>
                             </div>
 
-                            {loadingTeam ? (
+                            {loadingProjects ? (
                                 <div className="py-20 flex flex-col items-center justify-center gap-3">
                                     <svg className="animate-spin h-8 w-8 text-gold-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    <span className="text-xs text-[#888888] uppercase tracking-wider font-bold">Loading members...</span>
+                                    <span className="text-xs text-[#888888] uppercase tracking-wider font-bold">Loading projects...</span>
                                 </div>
-                            ) : filteredMembers.length === 0 ? (
+                            ) : filteredProjects.length === 0 ? (
                                 <div className="py-20 text-center">
-                                    <span className="text-xs text-[#666666] uppercase tracking-widest block font-black">No team members found</span>
+                                    <span className="text-xs text-[#666666] uppercase tracking-widest block font-black">No projects found</span>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-xs border-collapse">
                                         <thead>
                                             <tr className="border-b border-white/10 text-[#888888] uppercase font-bold tracking-wider">
-                                                <th className="pb-3 pl-4">Member</th>
-                                                <th className="pb-3">Details</th>
-                                                <th className="pb-3">Social Profiles</th>
+                                                <th className="pb-3 pl-4 w-32">Thumbnail</th>
+                                                <th className="pb-3 pl-2">Project Info</th>
+                                                <th className="pb-3">Timeline</th>
                                                 <th className="pb-3 pr-4 text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5 text-[#DDDDDD]">
-                                            {filteredMembers.map(member => (
-                                                <tr key={member._id} className="hover:bg-white/[0.01] transition-colors">
-                                                    <td className="py-3.5 pl-4 font-bold text-white flex items-center gap-3">
-                                                        <div
-                                                            className="relative w-10 h-12 p-[1px] bg-gradient-to-br from-gold-primary/20 to-gold-primary/60 flex-shrink-0"
-                                                            style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
-                                                        >
-                                                            <div
-                                                                className="relative w-full h-full bg-white/[0.02] overflow-hidden flex items-center justify-center"
-                                                                style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
-                                                            >
-                                                                {member.pic ? (
-                                                                    <img src={member.pic} alt="Profile" className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    <span className="text-[10px] text-white/40 uppercase font-black tracking-wider">
-                                                                        {member.fullname.substring(0, 2)}
+                                            {filteredProjects.map(project => (
+                                                <tr key={project._id} className="hover:bg-white/[0.01] transition-colors">
+                                                    <td className="py-3.5 pl-4">
+                                                        <div className="w-24 h-14 bg-black border border-white/10 overflow-hidden rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            {project.thumbnail ? (
+                                                                <img src={project.thumbnail} alt="Thumbnail" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <span className="text-[9px] text-white/30 uppercase font-bold">No Image</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3.5 pl-2">
+                                                        <div className="flex flex-col gap-1 max-w-sm">
+                                                            <span className="font-extrabold text-sm text-white uppercase tracking-wider">{project.title}</span>
+                                                            <span className="text-[9px] text-[#888888] uppercase tracking-widest font-black">{project.domain}</span>
+                                                            <p className="text-[11px] text-[#BBBBBB] line-clamp-2">{project.description}</p>
+                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                {project.techStack.map((tech, idx) => (
+                                                                    <span key={idx} className="bg-white/5 border border-white/10 text-[#CCCCCC] text-[8px] px-1.5 py-0.5 rounded font-mono font-bold">
+                                                                        {tech}
                                                                     </span>
-                                                                )}
+                                                                ))}
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col">
-                                                            <span>{member.fullname}</span>
-                                                            <span className="text-[10px] text-[#666666] font-normal font-sans">{member.email}</span>
-                                                        </div>
                                                     </td>
                                                     <td className="py-3.5">
                                                         <div className="flex flex-col">
-                                                            <span className="font-bold text-[#AAAAAA] uppercase text-[10px] tracking-wider">{member.department}</span>
-                                                            <span className="text-[9px] text-[#666666] uppercase tracking-wider font-semibold">
-                                                                {member.year} Year • Sec {member.section} • Batch {member.batch}
+                                                            <span className="font-bold text-[#AAAAAA] uppercase text-[9px] tracking-wider">Duration</span>
+                                                            <span className="text-[10px] text-white font-semibold">
+                                                                {new Date(project.startDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })} - {new Date(project.endDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
                                                             </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3.5">
-                                                        <div className="flex items-center gap-2">
-                                                            {member.Linkedin && (
+                                                            <div className="flex gap-2 mt-2">
                                                                 <a
-                                                                    href={member.Linkedin}
+                                                                    href={project.github}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="text-xs text-[#888888] hover:text-gold-primary transition-colors"
-                                                                >
-                                                                    LinkedIn
-                                                                </a>
-                                                            )}
-                                                            {member.Linkedin && member.github && (
-                                                                <span className="text-white/10">•</span>
-                                                            )}
-                                                            {member.github && (
-                                                                <a
-                                                                    href={member.github}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-xs text-[#888888] hover:text-gold-primary transition-colors"
+                                                                    className="text-[9px] font-bold text-gold-primary hover:underline uppercase tracking-wider"
                                                                 >
                                                                     GitHub
                                                                 </a>
-                                                            )}
+                                                                {project.liveDemo && (
+                                                                    <>
+                                                                        <span className="text-white/10">|</span>
+                                                                        <a
+                                                                            href={project.liveDemo}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-[9px] font-bold text-gold-primary hover:underline uppercase tracking-wider"
+                                                                        >
+                                                                            Live Demo
+                                                                        </a>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="py-3.5 pr-4 text-right">
                                                         <button
-                                                            onClick={() => openEditModal(member)}
+                                                            onClick={() => openEditModal(project)}
                                                             className="bg-white/5 hover:bg-white/10 text-white text-[9px] font-extrabold uppercase py-1 px-3.5 rounded-full mr-2 cursor-pointer transition-colors"
                                                         >
                                                             Edit
                                                         </button>
                                                         <button
-                                                            onClick={() => setMemberToDelete(member._id)}
+                                                            onClick={() => setProjectToDelete(project._id)}
                                                             className="bg-transparent border border-white/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-[9px] font-bold uppercase py-1 px-3.5 rounded-full cursor-pointer transition-colors"
                                                         >
                                                             Delete
@@ -759,7 +764,7 @@ export default function TeamManagement() {
                             <div className="flex flex-col items-center justify-center py-12 px-6 text-center select-none animate-text-entrance">
                                 <div className="w-14 h-14 rounded-full border-2 border-white/5 border-t-gold-primary animate-spin mb-6" />
                                 <h4 className="text-sm font-black uppercase tracking-widest text-white mb-2">
-                                    Uploading Photo
+                                    Uploading Thumbnail
                                 </h4>
                                 <div className="w-full max-w-xs bg-white/5 h-1.5 rounded-full overflow-hidden mb-3">
                                     <div
@@ -776,33 +781,26 @@ export default function TeamManagement() {
                         ) : (
                             <>
                                 <h3 className="text-lg font-black uppercase tracking-wider text-white mb-6">
-                                    {modalMode === "add" ? "Add Team Member" : "Edit Team Member"}
+                                    {modalMode === "add" ? "Add Project" : "Edit Project"}
                                 </h3>
-
-                                {modalError && (
-                                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl p-3 mb-4">
-                                        {modalError}
-                                    </div>
-                                )}
 
                                 <form onSubmit={handleModalSubmit} className="space-y-4 text-left">
                                     <div className="flex flex-col items-center justify-center gap-3 w-full mb-4">
-                                        <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider block text-center">Profile Picture</label>
+                                        <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider block text-center">Project Thumbnail Cover (16:9)</label>
 
                                         <div
-                                            className="relative w-24 h-28 p-[1.5px] bg-gradient-to-br from-gold-primary/30 to-gold-primary/80 flex-shrink-0"
-                                            style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                                            className="relative w-48 h-28 p-[1.5px] bg-gradient-to-br from-gold-primary/30 to-gold-primary/80 rounded-xl"
                                         >
                                             <div
-                                                className="relative w-full h-full bg-white/[0.02] overflow-hidden flex items-center justify-center"
-                                                style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                                                className="relative w-full h-full bg-white/[0.02] overflow-hidden flex items-center justify-center rounded-[10px]"
                                             >
-                                                {formValues.pic ? (
-                                                    <img src={formValues.pic} alt="Preview" className="w-full h-full object-cover" />
+                                                {formValues.thumbnail ? (
+                                                    <img src={formValues.thumbnail} alt="Preview" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/20">
-                                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                                        <circle cx="12" cy="7" r="4" />
+                                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                                        <circle cx="8.5" cy="8.5" r="1.5" />
+                                                        <polyline points="21 15 16 10 5 21" />
                                                     </svg>
                                                 )}
                                             </div>
@@ -813,126 +811,121 @@ export default function TeamManagement() {
                                                 type="file"
                                                 accept="image/*"
                                                 className="hidden"
-                                                id="pic-upload"
+                                                id="thumbnail-upload"
                                                 onChange={handleFileChange}
                                             />
                                             <label
-                                                htmlFor="pic-upload"
+                                                htmlFor="thumbnail-upload"
                                                 className="bg-white/5 border border-white/10 hover:border-gold-primary/30 text-white text-[10px] font-bold uppercase py-2 px-5 rounded-lg cursor-pointer transition-colors block text-center"
                                             >
-                                                Upload Photo
+                                                Upload Thumbnail
                                             </label>
-                                            {formValues.pic && (
+                                            {formValues.thumbnail && (
                                                 <button
                                                     type="button"
                                                     onClick={async () => {
-                                                        const urlToDelete = formValues.pic;
-                                                        setFormValues({ ...formValues, pic: "" });
+                                                        const urlToDelete = formValues.thumbnail;
+                                                        setFormValues({ ...formValues, thumbnail: "" });
                                                         await deleteImageFromCloudinary(urlToDelete);
                                                     }}
                                                     className="text-red-400 text-[10px] font-bold uppercase hover:underline focus:outline-none bg-transparent border-none cursor-pointer"
                                                 >
-                                                    Remove Photo
+                                                    Remove Thumbnail
                                                 </button>
                                             )}
                                         </div>
                                     </div>
 
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Project Title *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                            value={formValues.title}
+                                            onChange={(e) => setFormValues({ ...formValues, title: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Project Description *</label>
+                                        <textarea
+                                            required
+                                            rows={3}
+                                            className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary resize-none"
+                                            value={formValues.description}
+                                            onChange={(e) => setFormValues({ ...formValues, description: e.target.value })}
+                                        />
+                                    </div>
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Full Name *</label>
+                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Domain *</label>
                                             <input
                                                 type="text"
                                                 required
+                                                placeholder="e.g. Computer Vision"
                                                 className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.fullname}
-                                                onChange={(e) => setFormValues({ ...formValues, fullname: e.target.value })}
+                                                value={formValues.domain}
+                                                onChange={(e) => setFormValues({ ...formValues, domain: e.target.value })}
                                             />
                                         </div>
                                         <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Email Address *</label>
-                                            <input
-                                                type="email"
-                                                required
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.email}
-                                                onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Department *</label>
+                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Tech Stack (comma separated) *</label>
                                             <input
                                                 type="text"
                                                 required
-                                                placeholder="e.g. CSE"
+                                                placeholder="e.g. React, Node.js, PyTorch"
                                                 className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.department}
-                                                onChange={(e) => setFormValues({ ...formValues, department: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Section *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="e.g. A"
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.section}
-                                                onChange={(e) => setFormValues({ ...formValues, section: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Year *</label>
-                                            <select
-                                                required
-                                                className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.year}
-                                                onChange={(e) => setFormValues({ ...formValues, year: e.target.value as any })}
-                                            >
-                                                <option value="1st">1st Year</option>
-                                                <option value="2nd">2nd Year</option>
-                                                <option value="3rd">3rd Year</option>
-                                                <option value="4th">4th Year</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Batch *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="e.g. 2023-2027"
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.batch}
-                                                onChange={(e) => setFormValues({ ...formValues, batch: e.target.value })}
+                                                value={formValues.techStack}
+                                                onChange={(e) => setFormValues({ ...formValues, techStack: e.target.value })}
                                             />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">LinkedIn Profile URL</label>
+                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">GitHub Repository URL *</label>
                                             <input
                                                 type="url"
-                                                placeholder="https://linkedin.com/in/..."
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.Linkedin}
-                                                onChange={(e) => setFormValues({ ...formValues, Linkedin: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">GitHub Profile URL</label>
-                                            <input
-                                                type="url"
+                                                required
                                                 placeholder="https://github.com/..."
                                                 className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
                                                 value={formValues.github}
                                                 onChange={(e) => setFormValues({ ...formValues, github: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Live Demo URL (optional)</label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://..."
+                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                value={formValues.liveDemo}
+                                                onChange={(e) => setFormValues({ ...formValues, liveDemo: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Start Date *</label>
+                                            <input
+                                                type="date"
+                                                required
+                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary scheme-dark"
+                                                value={formValues.startDate}
+                                                onChange={(e) => setFormValues({ ...formValues, startDate: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">End Date *</label>
+                                            <input
+                                                type="date"
+                                                required
+                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary scheme-dark"
+                                                value={formValues.endDate}
+                                                onChange={(e) => setFormValues({ ...formValues, endDate: e.target.value })}
                                             />
                                         </div>
                                     </div>
@@ -949,7 +942,7 @@ export default function TeamManagement() {
                                             type="submit"
                                             className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black text-xs font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(255,193,7,0.2)] hover:shadow-[0_6px_20px_rgba(255,193,7,0.3)]"
                                         >
-                                            {modalMode === "add" ? "Save Member" : "Update Member"}
+                                            {modalMode === "add" ? "Save Project" : "Update Project"}
                                         </button>
                                     </div>
                                 </form>
@@ -960,7 +953,7 @@ export default function TeamManagement() {
             )}
 
             {/* Custom Delete Confirmation Modal */}
-            {memberToDelete && (
+            {projectToDelete && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
                     <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-text-entrance">
                         <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
@@ -976,21 +969,21 @@ export default function TeamManagement() {
                             Confirm Deletion
                         </h3>
                         <p className="text-xs text-[#888888] leading-relaxed mb-6 uppercase tracking-wider font-semibold">
-                            Are you sure you want to delete this team member? This action is permanent and cannot be undone.
+                            Are you sure you want to delete this project? This action is permanent and cannot be undone.
                         </p>
                         
                         <div className="flex justify-center gap-3">
                             <button
-                                onClick={() => setMemberToDelete(null)}
+                                onClick={() => setProjectToDelete(null)}
                                 className="bg-transparent border border-white/10 hover:border-white/20 text-white text-[10px] font-extrabold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={async () => {
-                                    const id = memberToDelete;
-                                    setMemberToDelete(null);
-                                    await executeDeleteMember(id);
+                                    const id = projectToDelete;
+                                    setProjectToDelete(null);
+                                    await executeDeleteProject(id);
                                 }}
                                 className="bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/40 text-red-400 text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(239,68,68,0.05)]"
                             >

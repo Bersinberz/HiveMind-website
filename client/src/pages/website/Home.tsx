@@ -1,6 +1,7 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useState, useEffect } from "react";
 import Navbar from "../../compoenets/Navbar";
 import HeroSection from "../../compoenets/HeroSection";
+import ProjectServices, { type Project } from "../../services/admin/ProjectServices";
 
 // ==========================================
 // ABOUT SECTION COMPONENT
@@ -156,7 +157,7 @@ function DomainsSection() {
     ];
 
     return (
-        <section className="relative flex flex-col items-center bg-[#050505] text-white py-16 md:py-24 px-6 md:px-[10%] border-b border-white/5 z-10" id="projects">
+        <section className="relative flex flex-col items-center bg-[#050505] text-white py-16 md:py-24 px-6 md:px-[10%] border-b border-white/5 z-10" id="domains">
             <span className="text-xs font-bold text-gold-primary uppercase tracking-[0.3em] mb-3 [text-shadow:0_0_10px_rgba(255,193,7,0.3)]">
                 Our Stack
             </span>
@@ -388,6 +389,147 @@ function JoinSection() {
 }
 
 // ==========================================
+// PROJECTS SECTION COMPONENT
+// ==========================================
+function ProjectsSection() {
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        ProjectServices.getProjects()
+            .then((res) => {
+                if (res.success && res.projects) {
+                    setProjects(res.projects);
+                }
+            })
+            .catch((err) => console.error("Error loading projects:", err))
+            .finally(() => setLoading(false));
+    }, []);
+
+    if (loading) {
+        return (
+            <section className="relative flex flex-col items-center bg-[#050505] text-white py-16 md:py-24 px-6 md:px-[10%] border-b border-white/5 z-10" id="projects">
+                <span className="text-xs font-bold text-gold-primary uppercase tracking-[0.3em] mb-3 [text-shadow:0_0_10px_rgba(255,193,7,0.3)]">
+                    Explore
+                </span>
+                <h2 className="text-3xl md:text-5xl font-extrabold uppercase tracking-wide text-center mb-14 bg-gradient-to-r from-white via-white to-gold-light bg-clip-text text-transparent">
+                    Our Projects
+                </h2>
+                <div className="py-20 flex flex-col items-center justify-center gap-3">
+                    <div className="w-10 h-10 rounded-full border-2 border-white/5 border-t-gold-primary animate-spin" />
+                    <span className="text-[10px] text-[#888888] uppercase tracking-wider font-extrabold">Loading our creations...</span>
+                </div>
+            </section>
+        );
+    }
+
+    if (projects.length === 0) {
+        return null; // Don't render empty section
+    }
+
+    return (
+        <section className="relative flex flex-col items-center bg-[#050505] text-white py-16 md:py-24 px-6 md:px-[10%] border-b border-white/5 z-10" id="projects">
+            <span className="text-xs font-bold text-gold-primary uppercase tracking-[0.3em] mb-3 [text-shadow:0_0_10px_rgba(255,193,7,0.3)]">
+                Showcase
+            </span>
+            <h2 className="text-3xl md:text-5xl font-extrabold uppercase tracking-wide text-center mb-14 bg-gradient-to-r from-white via-white to-gold-light bg-clip-text text-transparent">
+                Active Projects
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl">
+                {projects.map((project) => (
+                    <div
+                        key={project._id}
+                        className="group relative bg-white/[0.01] border border-white/5 rounded-3xl overflow-hidden flex flex-col h-full hover:border-gold-primary/20 hover:bg-gold-primary/[0.005] hover:-translate-y-1.5 transition-all duration-300 shadow-xl hover:shadow-[0_15px_30px_rgba(0,0,0,0.5),_0_0_20px_rgba(255,193,7,0.02)]"
+                    >
+                        {/* Thumbnail cover */}
+                        <div className="relative w-full h-48 overflow-hidden bg-black border-b border-white/5">
+                            {project.thumbnail ? (
+                                <img
+                                    src={project.thumbnail}
+                                    alt={project.title}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-white/20 uppercase font-black text-xs">
+                                    No Image
+                                </div>
+                            )}
+                            {/* Domain label */}
+                            <span className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 text-gold-primary text-[9px] font-black tracking-widest px-3 py-1.5 rounded-full uppercase">
+                                {project.domain}
+                            </span>
+                        </div>
+
+                        {/* Card details */}
+                        <div className="p-6 flex flex-col flex-1 justify-between">
+                            <div className="space-y-3.5">
+                                <h3 className="text-base font-black text-white uppercase tracking-wider group-hover:text-gold-primary transition-colors">
+                                    {project.title}
+                                </h3>
+                                <p className="text-xs text-[#BBBBBB] leading-relaxed line-clamp-3">
+                                    {project.description}
+                                </p>
+                                
+                                {/* Tech stack tags */}
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {project.techStack.map((tech, idx) => (
+                                        <span
+                                            key={idx}
+                                            className="bg-white/5 border border-white/5 text-[#AAAAAA] text-[8px] font-mono font-bold uppercase tracking-wider px-2 py-1 rounded"
+                                        >
+                                            {tech}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Card Footer: Timeline & Links */}
+                            <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-6">
+                                <span className="text-[9px] text-[#666666] uppercase tracking-widest font-black">
+                                    {new Date(project.startDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })} - {new Date(project.endDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                                </span>
+
+                                <div className="flex items-center gap-3">
+                                    <a
+                                        href={project.github}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[10px] font-black text-white/80 hover:text-gold-primary uppercase tracking-widest transition-colors flex items-center gap-1 hover:underline"
+                                    >
+                                        GitHub
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                            <polyline points="15 3 21 3 21 9" />
+                                            <line x1="10" y1="14" x2="21" y2="3" />
+                                        </svg>
+                                    </a>
+                                    {project.liveDemo && (
+                                        <a
+                                            href={project.liveDemo}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[10px] font-black text-gold-primary hover:text-gold-light uppercase tracking-widest transition-colors flex items-center gap-1 hover:underline"
+                                        >
+                                            Demo
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                                <polyline points="15 3 21 3 21 9" />
+                                                <line x1="10" y1="14" x2="21" y2="3" />
+                                            </svg>
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+// ==========================================
 // HOME PAGE CONTAINER
 // ==========================================
 export default function Home() {
@@ -399,6 +541,7 @@ export default function Home() {
                 <AboutSection />
                 <MissionSection />
                 <DomainsSection />
+                <ProjectsSection />
                 <TestimonialsSection />
                 <JoinSection />
             </main>

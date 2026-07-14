@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import authService, { type AdminUser } from "../../services/admin/authService";
 import AdminLoader from "../../compoenets/AdminLoader";
+import NewMemberServices, { type NewMember } from "../../services/admin/NewMemberServices";
 
-type AdminTab = "dashboard" | "team" | "projects" | "events" | "new_members";
+
+type AdminTab = "dashboard" | "team" | "projects" | "new_members";
 
 export default function AdminDashboard() {
     const navigate = useNavigate();
@@ -17,9 +19,65 @@ export default function AdminDashboard() {
 
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+    // --- Candidate Applications State ---
+    const [applications, setApplications] = useState<NewMember[]>([]);
+    const [loadingApps, setLoadingApps] = useState(false);
+    const [selectedApp, setSelectedApp] = useState<NewMember | null>(null);
+    const [appToDelete, setAppToDelete] = useState<string | null>(null);
+    const [newMembersSubTab, setNewMembersSubTab] = useState<"pending" | "accepted" | "rejected">("pending");
+
+    const fetchApplications = async () => {
+        setLoadingApps(true);
+        try {
+            const res = await NewMemberServices.getApplications();
+            if (res.success && res.applications) {
+                setApplications(res.applications);
+            }
+        } catch (err) {
+            console.error("Error fetching applications:", err);
+        } finally {
+            setLoadingApps(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === "new_members") {
+            fetchApplications();
+        }
+    }, [activeTab]);
+
+    const handleUpdateStatus = async (id: string, status: NewMember["status"]) => {
+        try {
+            const res = await NewMemberServices.updateApplicationStatus(id, status);
+            if (res.success) {
+                fetchApplications();
+            } else {
+                alert(res.message || "Failed to update status.");
+            }
+        } catch (err) {
+            console.error("Update status error:", err);
+        }
+    };
+
+    const executeDeleteApp = async (id: string) => {
+        try {
+            const res = await NewMemberServices.deleteApplication(id);
+            if (res.success) {
+                fetchApplications();
+            } else {
+                alert(res.message || "Failed to delete application.");
+            }
+        } catch (err) {
+            console.error("Delete application error:", err);
+        }
+    };
+
+
     useEffect(() => {
         if (activeTab === "team") {
             navigate("/admin/team");
+        } else if (activeTab === "projects") {
+            navigate("/admin/projects");
         }
     }, [activeTab, navigate]);
 
@@ -233,136 +291,185 @@ export default function AdminDashboard() {
         </div>
     );
 
-    // 4. Events View
-    const renderEventsView = () => (
-        <div className="space-y-8 animate-text-entrance">
-            <section className="bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.005] border border-white/5 rounded-3xl p-8 shadow-lg">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 className="text-xl font-extrabold uppercase tracking-wider text-white">
-                            Lab Events
-                        </h2>
-                        <p className="text-xs text-[#888888] mt-1">
-                            Coordinate hackathons, research sessions, and tech workshops.
-                        </p>
-                    </div>
-                    <button className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black border-none py-2 px-5 text-xs font-extrabold tracking-widest uppercase rounded-full cursor-pointer shadow-[0_4px_15px_rgba(255,193,7,0.2)] transition-all duration-300 hover:scale-102">
-                        Schedule Event
-                    </button>
-                </div>
 
-                <div className="space-y-4">
-                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-gold-primary/20 transition-all">
+
+    // 5. New Members View (Applications under review)
+    const renderNewMembersView = () => {
+        const pendingApps = applications.filter(app => app.status !== "Approved" && app.status !== "Rejected");
+        const acceptedApps = applications.filter(app => app.status === "Approved");
+        const rejectedApps = applications.filter(app => app.status === "Rejected");
+        
+        const activeList = 
+            newMembersSubTab === "pending" ? pendingApps : 
+            newMembersSubTab === "accepted" ? acceptedApps : 
+            rejectedApps;
+
+        return (
+            <div className="space-y-8 animate-text-entrance">
+                <section className="bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.005] border border-white/5 rounded-3xl p-8 shadow-lg">
+                    <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
                         <div>
-                            <span className="text-[9px] font-bold text-gold-primary uppercase tracking-widest">
-                                July 20, 2026
-                            </span>
-                            <h3 className="font-bold text-white text-sm uppercase mt-1">
-                                Generative AI Hackfest
-                            </h3>
-                            <p className="text-xs text-[#888888] mt-0.5">
-                                Venue: Sathyabama AI Supercomputing Laboratory
+                            <h2 className="text-xl font-extrabold uppercase tracking-wider text-white">
+                                New Member Applications
+                            </h2>
+                            <p className="text-xs text-[#888888] mt-1">
+                                Review student registration queries submitted via the landing page apply portal.
                             </p>
                         </div>
-                        <span className="bg-white/5 border border-white/10 text-white text-[10px] font-semibold py-1.5 px-4 rounded-full uppercase tracking-wider">
-                            32 Registered
-                        </span>
+                        <button 
+                            onClick={fetchApplications}
+                            className="bg-transparent border border-white/10 hover:border-gold-primary/30 text-white text-[10px] font-bold uppercase py-2 px-4 rounded-lg transition-colors cursor-pointer"
+                        >
+                            Refresh Applications
+                        </button>
                     </div>
 
-                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-gold-primary/20 transition-all">
-                        <div>
-                            <span className="text-[9px] font-bold text-gold-primary uppercase tracking-widest">
-                                July 27, 2026
-                            </span>
-                            <h3 className="font-bold text-white text-sm uppercase mt-1">
-                                Transformers Architecture Deep-Dive
-                            </h3>
-                            <p className="text-xs text-[#888888] mt-0.5">
-                                Venue: SCAS Seminar Hall
-                            </p>
+                    {/* Sub-tab Switcher Menu */}
+                    <div className="flex flex-wrap gap-4 sm:gap-6 mb-8 border-b border-white/5">
+                        <button
+                            onClick={() => setNewMembersSubTab("pending")}
+                            className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer border-b-2 bg-transparent border-none ${
+                                newMembersSubTab === "pending"
+                                    ? "border-gold-primary text-gold-primary"
+                                    : "border-transparent text-[#888888] hover:text-white"
+                            }`}
+                        >
+                            Pending Review ({pendingApps.length})
+                        </button>
+                        <button
+                            onClick={() => setNewMembersSubTab("accepted")}
+                            className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer border-b-2 bg-transparent border-none ${
+                                newMembersSubTab === "accepted"
+                                    ? "border-gold-primary text-gold-primary"
+                                    : "border-transparent text-[#888888] hover:text-white"
+                            }`}
+                        >
+                            Accepted Members ({acceptedApps.length})
+                        </button>
+                        <button
+                            onClick={() => setNewMembersSubTab("rejected")}
+                            className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer border-b-2 bg-transparent border-none ${
+                                newMembersSubTab === "rejected"
+                                    ? "border-gold-primary text-gold-primary"
+                                    : "border-transparent text-[#888888] hover:text-white"
+                            }`}
+                        >
+                            Rejected Pool ({rejectedApps.length})
+                        </button>
+                    </div>
+
+                    {loadingApps ? (
+                        <div className="py-20 flex flex-col items-center justify-center gap-3">
+                            <svg className="animate-spin h-8 w-8 text-gold-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="text-xs text-[#888888] uppercase tracking-wider font-bold">Querying application database...</span>
                         </div>
-                        <span className="bg-white/5 border border-white/10 text-white text-[10px] font-semibold py-1.5 px-4 rounded-full uppercase tracking-wider">
-                            120 Registered
-                        </span>
-                    </div>
-                </div>
-            </section>
-        </div>
-    );
+                    ) : activeList.length === 0 ? (
+                        <div className="py-20 text-center">
+                            <span className="text-xs text-[#666666] uppercase tracking-widest block font-black">
+                                No {newMembersSubTab} applications found
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr className="border-b border-white/10 text-[#888888] uppercase font-bold tracking-wider">
+                                        <th className="pb-3 pl-4">Applicant</th>
+                                        <th className="pb-3">Year</th>
+                                        <th className="pb-3">Domain</th>
+                                        <th className="pb-3 text-center">Status</th>
+                                        <th className="pb-3 pr-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5 text-[#DDDDDD]">
+                                    {activeList.map(app => (
+                                        <tr key={app._id} className="hover:bg-white/[0.01] transition-colors">
+                                            <td 
+                                                onClick={() => setSelectedApp(app)}
+                                                className="py-3.5 pl-4 font-bold text-white flex flex-col cursor-pointer hover:text-gold-primary transition-colors"
+                                            >
+                                                <span>{app.fullname}</span>
+                                                <span className="text-[10px] text-[#666666] font-normal font-sans">{app.email}</span>
+                                            </td>
+                                            <td className="py-3.5">{app.year} Year</td>
+                                            <td className="py-3.5 max-w-[120px] truncate">{app.domainOfInterest}</td>
+                                            <td className="py-3.5 text-center">
+                                                <span className={`border px-2.5 py-0.5 rounded-full font-semibold uppercase text-[9px] tracking-wider ${
+                                                    app.status === "Approved" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                                    app.status === "Rejected" ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                                                    app.status === "Interviewed" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                                                    "bg-gold-primary/10 text-gold-primary border-gold-primary/20"
+                                                }`}>
+                                                    {app.status}
+                                                </span>
+                                            </td>
+                                            <td className="py-3.5 pr-4 text-right">
+                                                {newMembersSubTab === "pending" ? (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(app._id, "Approved")}
+                                                            className="bg-emerald-500 hover:bg-emerald-600 text-black text-[9px] font-extrabold uppercase py-1.5 px-4 rounded-full mr-2 cursor-pointer transition-colors"
+                                                        >
+                                                            Accept
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(app._id, "Rejected")}
+                                                            className="bg-transparent border border-white/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-[9px] font-bold uppercase py-1.5 px-4 rounded-full cursor-pointer transition-colors"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </>
+                                                ) : newMembersSubTab === "accepted" ? (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(app._id, "Rejected")}
+                                                            className="bg-transparent border border-white/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-[9px] font-bold uppercase py-1.5 px-4 rounded-full cursor-pointer transition-colors mr-2"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(app._id, "Pending")}
+                                                            className="bg-transparent border border-white/10 hover:border-gold-primary/30 text-white/60 hover:text-gold-primary text-[9px] font-bold uppercase py-1.5 px-4 rounded-full cursor-pointer transition-colors"
+                                                        >
+                                                            Restore to Pending
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(app._id, "Approved")}
+                                                            className="bg-emerald-500 hover:bg-emerald-600 text-black text-[9px] font-extrabold uppercase py-1.5 px-4 rounded-full mr-2 cursor-pointer transition-colors"
+                                                        >
+                                                            Accept
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(app._id, "Pending")}
+                                                            className="bg-transparent border border-white/10 hover:border-gold-primary/30 text-white/60 hover:text-gold-primary text-[9px] font-bold uppercase py-1.5 px-4 rounded-full cursor-pointer transition-colors"
+                                                        >
+                                                            Restore to Pending
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </section>
+            </div>
+        );
+    };
 
-    // 5. New Members View
-    const renderNewMembersView = () => (
-        <div className="space-y-8 animate-text-entrance">
-            <section className="bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.005] border border-white/5 rounded-3xl p-8 shadow-lg">
-                <div className="mb-6">
-                    <h2 className="text-xl font-extrabold uppercase tracking-wider text-white">
-                        New Member Applications
-                    </h2>
-                    <p className="text-xs text-[#888888] mt-1">
-                        Review student registration queries submitted via the landing page apply portal.
-                    </p>
-                </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr className="border-b border-white/10 text-[#888888] uppercase font-bold tracking-wider">
-                                <th className="pb-3 pl-4">Applicant</th>
-                                <th className="pb-3">Year</th>
-                                <th className="pb-3">Domain</th>
-                                <th className="pb-3 text-center">Status</th>
-                                <th className="pb-3 pr-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5 text-[#DDDDDD]">
-                            <tr className="hover:bg-white/[0.01] transition-colors">
-                                <td className="py-3.5 pl-4 font-bold text-white flex flex-col">
-                                    <span>Aditya Kumar</span>
-                                    <span className="text-[10px] text-[#666666] font-normal font-sans">aditya@sathyabama.ac.in</span>
-                                </td>
-                                <td className="py-3.5">3rd Year</td>
-                                <td className="py-3.5">Generative AI & LLMs</td>
-                                <td className="py-3.5 text-center">
-                                    <span className="bg-gold-primary/10 text-gold-primary border border-gold-primary/20 px-2.5 py-0.5 rounded-full font-semibold uppercase text-[9px] tracking-wider">
-                                        Pending
-                                    </span>
-                                </td>
-                                <td className="py-3.5 pr-4 text-right gap-2">
-                                    <button className="bg-emerald-500 hover:bg-emerald-600 text-black text-[9px] font-extrabold uppercase py-1 px-3.5 rounded-full mr-2 cursor-pointer transition-colors">
-                                        Approve
-                                    </button>
-                                    <button className="bg-transparent border border-white/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-[9px] font-bold uppercase py-1 px-3.5 rounded-full cursor-pointer transition-colors">
-                                        Reject
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr className="hover:bg-white/[0.01] transition-colors">
-                                <td className="py-3.5 pl-4 font-bold text-white flex flex-col">
-                                    <span>Sneha Reddy</span>
-                                    <span className="text-[10px] text-[#666666] font-normal font-sans">sneha.r@gmail.com</span>
-                                </td>
-                                <td className="py-3.5">2nd Year</td>
-                                <td className="py-3.5">Computer Vision</td>
-                                <td className="py-3.5 text-center">
-                                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-semibold uppercase text-[9px] tracking-wider">
-                                        Interviewed
-                                    </span>
-                                </td>
-                                <td className="py-3.5 pr-4 text-right">
-                                    <button className="bg-emerald-500 hover:bg-emerald-600 text-black text-[9px] font-extrabold uppercase py-1 px-3.5 rounded-full mr-2 cursor-pointer transition-colors">
-                                        Approve
-                                    </button>
-                                    <button className="bg-transparent border border-white/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-[9px] font-bold uppercase py-1 px-3.5 rounded-full cursor-pointer transition-colors">
-                                        Reject
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-    );
+
+
+
+
 
     // Sidebar navigation list items helper
     const navigationItems = [
@@ -399,18 +506,7 @@ export default function AdminDashboard() {
                 </svg>
             ),
         },
-        {
-            id: "events" as AdminTab,
-            label: "Events",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-            ),
-        },
+
         {
             id: "new_members" as AdminTab,
             label: "new members",
@@ -423,6 +519,7 @@ export default function AdminDashboard() {
                 </svg>
             ),
         },
+
     ];
 
     return (
@@ -463,6 +560,8 @@ export default function AdminDashboard() {
                                     onClick={() => {
                                         if (item.id === "team") {
                                             navigate("/admin/team");
+                                        } else if (item.id === "projects") {
+                                            navigate("/admin/projects");
                                         } else {
                                             setActiveTab(item.id);
                                         }
@@ -540,6 +639,8 @@ export default function AdminDashboard() {
                                             onClick={() => {
                                                 if (item.id === "team") {
                                                     navigate("/admin/team");
+                                                } else if (item.id === "projects") {
+                                                    navigate("/admin/projects");
                                                 } else {
                                                     setActiveTab(item.id);
                                                 }
@@ -612,10 +713,166 @@ export default function AdminDashboard() {
                     {activeTab === "dashboard" && renderDashboardView()}
                     {activeTab === "team" && renderTeamView()}
                     {activeTab === "projects" && renderProjectsView()}
-                    {activeTab === "events" && renderEventsView()}
+
                     {activeTab === "new_members" && renderNewMembersView()}
                 </main>
             </div>
+            {/* Custom View Applicant Modal */}
+            {selectedApp && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-[10000] p-4 overflow-y-auto">
+                    <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-text-entrance text-left">
+                        <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+                            <div>
+                                <h3 className="text-base sm:text-lg font-black uppercase tracking-wider text-white">
+                                    Applicant Details
+                                </h3>
+                                <span className="text-[9px] text-[#888888] uppercase tracking-widest font-black block mt-0.5">
+                                    Submitted {new Date(selectedApp.createdAt || "").toLocaleString()}
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => setSelectedApp(null)}
+                                className="text-[#888888] hover:text-white transition-colors cursor-pointer focus:outline-none bg-transparent border-none"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs max-h-[450px] overflow-y-auto pr-2">
+                            {/* Personal */}
+                            <div className="space-y-3">
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Full Name</span>
+                                    <span className="text-white font-semibold">{selectedApp.fullname}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Register Number</span>
+                                    <span className="text-white font-semibold">{selectedApp.registerNumber}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Email Address</span>
+                                    <a href={`mailto:${selectedApp.email}`} className="text-gold-primary hover:underline font-semibold">{selectedApp.email}</a>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Phone Number</span>
+                                    <span className="text-white font-semibold">{selectedApp.phoneNumber}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Department & Year</span>
+                                    <span className="text-white font-semibold">{selectedApp.dept} — {selectedApp.year} Year</span>
+                                </div>
+                            </div>
+
+                            {/* Links & Technical */}
+                            <div className="space-y-3">
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Domain of Interest</span>
+                                    <span className="text-gold-primary font-black uppercase tracking-widest text-[10px]">{selectedApp.domainOfInterest}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Programming Languages</span>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {selectedApp.programmingLanguages.map((lang, i) => (
+                                            <span key={i} className="bg-white/5 border border-white/10 text-white/80 text-[8px] font-bold px-2 py-0.5 rounded font-mono">
+                                                {lang}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Hours available per week</span>
+                                    <span className="text-white font-semibold">{selectedApp.hoursPerWeek} hours</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Referral Source</span>
+                                    <span className="text-white font-semibold">{selectedApp.howDidYouHear}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Social & Resume Profiles</span>
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                        <a href={selectedApp.linkedin} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-gold-primary text-[10px] font-bold uppercase tracking-wider no-underline">LinkedIn</a>
+                                        {selectedApp.github && (
+                                            <>
+                                                <span className="text-white/10">|</span>
+                                                <a href={selectedApp.github} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-gold-primary text-[10px] font-bold uppercase tracking-wider no-underline">GitHub</a>
+                                            </>
+                                        )}
+                                        {selectedApp.portfolio && (
+                                            <>
+                                                <span className="text-white/10">|</span>
+                                                <a href={selectedApp.portfolio} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-gold-primary text-[10px] font-bold uppercase tracking-wider no-underline">Portfolio</a>
+                                            </>
+                                        )}
+                                        <span className="text-white/10">|</span>
+                                        <a href={selectedApp.resume} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 text-[10px] font-bold uppercase tracking-wider no-underline">Resume PDF</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Essay Question */}
+                            <div className="col-span-1 sm:col-span-2 border-t border-white/5 pt-4 space-y-1.5">
+                                <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">Why do you want to join HiveMind?</span>
+                                <p className="text-[#BBBBBB] leading-relaxed italic whitespace-pre-wrap">{selectedApp.whyJoin}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-6 border-t border-white/5 mt-6">
+                            <button
+                                onClick={() => setSelectedApp(null)}
+                                className="bg-transparent border border-white/10 hover:border-white/20 text-white text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all"
+                            >
+                                Close Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Delete Confirmation Modal */}
+            {appToDelete && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
+                    <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-text-entrance">
+                        <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                <line x1="10" y1="11" x2="10" y2="17" />
+                                <line x1="14" y1="11" x2="14" y2="17" />
+                            </svg>
+                        </div>
+                        
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white mb-2">
+                            Confirm Deletion
+                        </h3>
+                        <p className="text-xs text-[#888888] leading-relaxed mb-6 uppercase tracking-wider font-semibold">
+                            Are you sure you want to delete this applicant? This action is permanent and cannot be undone.
+                        </p>
+                        
+                        <div className="flex justify-center gap-3">
+                            <button
+                                onClick={() => setAppToDelete(null)}
+                                className="bg-transparent border border-white/10 hover:border-white/20 text-white text-[10px] font-extrabold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const id = appToDelete;
+                                    setAppToDelete(null);
+                                    await executeDeleteApp(id);
+                                }}
+                                className="bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/40 text-red-400 text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(239,68,68,0.05)]"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
