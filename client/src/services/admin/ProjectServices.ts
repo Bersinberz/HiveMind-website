@@ -4,7 +4,7 @@ export interface Project {
     _id: string;
     title: string;
     description: string;
-    domain: string;
+    domain: string[];
     techStack: string[];
     github: string;
     liveDemo?: string;

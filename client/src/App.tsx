@@ -6,7 +6,9 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TeamManagement from "./pages/admin/TeamManagement";
 import ProjectsManagement from "./pages/admin/ProjectsManagement";
-import NewMembersManagement from "./pages/admin/NewMembersManagement";
+import ApplicationsManagement from "./pages/admin/ApplicationsManagement";
+import CommunitySettingsManagement from "./pages/admin/CommunitySettingsManagement";
+import MasterDataManagement from "./pages/admin/MasterDataManagement";
 import Projects from "./pages/website/Projects";
 import JoinHiveMind from "./pages/website/JoinHiveMind";
 import SplashScreen from "./compoenets/SplashScreen";
@@ -85,10 +87,26 @@ export default function App() {
                     }
                 />
                 <Route
-                    path="/admin/new-members"
+                    path="/admin/applications"
                     element={
                         <PageTransition>
-                            <NewMembersManagement />
+                            <ApplicationsManagement />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/admin/community-settings"
+                    element={
+                        <PageTransition>
+                            <CommunitySettingsManagement />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/admin/master-data"
+                    element={
+                        <PageTransition>
+                            <MasterDataManagement />
                         </PageTransition>
                     }
                 />

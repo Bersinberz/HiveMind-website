@@ -1,9 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { NewMember as INewMember } from "../types/newMember";
+import { Application as IApplication } from "../types/application";
 
-export interface NewMemberDocument extends Omit<INewMember, "_id" | "createdAt" | "updatedAt">, Document {}
+export interface ApplicationDocument extends Omit<IApplication, "_id" | "createdAt" | "updatedAt">, Document {
+    createdAt?: Date;
+    updatedAt?: Date;
+}
 
-const NewMemberSchema = new Schema<NewMemberDocument>(
+const ApplicationSchema = new Schema<ApplicationDocument>(
     {
         fullname: {
             type: String,
@@ -100,4 +103,4 @@ const NewMemberSchema = new Schema<NewMemberDocument>(
     }
 );
 
-export default mongoose.model<NewMemberDocument>("NewMember", NewMemberSchema);
+export default mongoose.model<ApplicationDocument>("Application", ApplicationSchema);

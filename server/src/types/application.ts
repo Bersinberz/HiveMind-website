@@ -1,4 +1,4 @@
-export interface NewMember {
+export interface Application {
     _id: string;
     fullname: string;
     registerNumber: string;

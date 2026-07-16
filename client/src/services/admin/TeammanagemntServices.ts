@@ -3,6 +3,7 @@ import axiosInstance from "../axiosInstance";
 export interface TeamMember {
     _id: string;
     fullname: string;
+    registerNumber: string;
     email: string;
     pic?: string;
     department: string;

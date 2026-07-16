@@ -20,7 +20,7 @@ const ProjectCard = ({ project }: { project: Project }) => {
                 )}
                 {/* Domain Hover Accent */}
                 <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 text-gold-primary text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shadow-md z-10">
-                    {project.domain}
+                    {Array.isArray(project.domain) ? project.domain.join(" • ") : project.domain}
                 </div>
             </div>
 
@@ -109,12 +109,12 @@ export default function Projects() {
     }, []);
 
     // Extract unique domains dynamically
-    const domains = ["All", ...Array.from(new Set(projects.map(p => p.domain))).filter(Boolean)];
+    const domains = ["All", ...Array.from(new Set(projects.flatMap(p => p.domain))).filter(Boolean)];
 
     const filteredProjects = projects.filter(project => {
         const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
             project.description.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesTab = activeTab === "All" || project.domain === activeTab;
+        const matchesTab = activeTab === "All" || (Array.isArray(project.domain) ? project.domain.includes(activeTab) : project.domain === activeTab);
         return matchesSearch && matchesTab;
     });
 

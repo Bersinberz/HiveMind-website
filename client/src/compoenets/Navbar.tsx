@@ -14,7 +14,7 @@ export default function Navbar() {
         if (target.startsWith("#")) {
             e.preventDefault();
             const elementId = target.substring(1);
-            
+
             if (location.pathname === "/") {
                 const el = document.getElementById(elementId);
                 if (el) {
@@ -35,8 +35,8 @@ export default function Navbar() {
     return (
         <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-black/40 backdrop-blur-md border-b border-white/5 shadow-2xl transition-all duration-300">
             {/* Logo */}
-            <Link 
-                to="/" 
+            <Link
+                to="/"
                 onClick={(e) => {
                     if (location.pathname === "/") {
                         e.preventDefault();
@@ -96,8 +96,8 @@ export default function Navbar() {
             </ul>
 
             {/* Desktop Join Button */}
-            <Link 
-                to="/join" 
+            <Link
+                to="/join"
                 className="hidden lg:block no-underline"
             >
                 <button className="relative overflow-hidden bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black border-none px-6 py-2.5 text-xs font-extrabold tracking-widest uppercase rounded-full cursor-pointer shadow-[0_4px_15px_rgba(255,193,7,0.35)] transition-all duration-300 hover:translate-y-[-2px] hover:shadow-[0_6px_22px_rgba(255,193,7,0.5),_0_0_10px_rgba(255,255,255,0.2)] active:translate-y-0 active:shadow-[0_2px_10px_rgba(255,193,7,0.4)] before:content-[''] before:absolute before:top-0 before:left-[-100%] before:w-full before:h-full before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:transition-all before:duration-600 hover:before:left-[100%]">
@@ -195,8 +195,8 @@ export default function Navbar() {
                             </a>
                         </li>
                     </ul>
-                    <Link 
-                        to="/join" 
+                    <Link
+                        to="/join"
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="w-full no-underline"
                     >

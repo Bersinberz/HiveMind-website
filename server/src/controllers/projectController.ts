@@ -33,7 +33,18 @@ export const createProject = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Project description must be at least 10 characters." });
         }
 
-        // 3. Validate Tech Stack array/strings
+        // 3. Validate Domain array/strings
+        let domainParsed: string[] = [];
+        if (Array.isArray(domain)) {
+            domainParsed = domain.map(d => d.trim()).filter(Boolean);
+        } else if (typeof domain === "string") {
+            domainParsed = domain.split(",").map(d => d.trim()).filter(Boolean);
+        }
+        if (domainParsed.length === 0) {
+            return res.status(400).json({ success: false, message: "Please select at least one domain." });
+        }
+
+        // 4. Validate Tech Stack array/strings
         let techStackParsed: string[] = [];
         if (Array.isArray(techStack)) {
             techStackParsed = techStack.map(t => t.trim()).filter(Boolean);
@@ -44,7 +55,7 @@ export const createProject = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Please provide a valid tech stack with at least one technology." });
         }
 
-        // 4. Validate URLs
+        // 5. Validate URLs
         if (!urlRegex.test(github)) {
             return res.status(400).json({ success: false, message: "Please provide a valid GitHub URL." });
         }
@@ -55,7 +66,7 @@ export const createProject = async (req: Request, res: Response) => {
         const newProject = new Project({
             title: title.trim(),
             description: description.trim(),
-            domain: domain.trim(),
+            domain: domainParsed,
             techStack: techStackParsed,
             github: github.trim(),
             liveDemo: liveDemo ? liveDemo.trim() : "",
@@ -104,7 +115,16 @@ export const updateProject = async (req: Request, res: Response) => {
         }
 
         if (domain !== undefined) {
-            project.domain = domain.trim();
+            let domainParsed: string[] = [];
+            if (Array.isArray(domain)) {
+                domainParsed = domain.map(d => d.trim()).filter(Boolean);
+            } else if (typeof domain === "string") {
+                domainParsed = domain.split(",").map(d => d.trim()).filter(Boolean);
+            }
+            if (domainParsed.length === 0) {
+                return res.status(400).json({ success: false, message: "Please select at least one domain." });
+            }
+            project.domain = domainParsed;
         }
 
         if (techStack !== undefined) {

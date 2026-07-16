@@ -5,6 +5,8 @@ import authService, { type AdminUser } from "../../services/admin/authService";
 import AdminLoader from "../../compoenets/AdminLoader";
 import TeammanagemntServices, { type TeamMember } from "../../services/admin/TeammanagemntServices";
 import axiosInstance from "../../services/axiosInstance";
+import MasterDataServices, { type IMasterDataOption } from "../../services/admin/MasterDataServices";
+import AdminSidebar from "../../compoenets/AdminSidebar";
 
 export default function TeamManagement() {
     const navigate = useNavigate();
@@ -18,6 +20,17 @@ export default function TeamManagement() {
     const [selectedDept, setSelectedDept] = useState("");
     const [selectedYear, setSelectedYear] = useState("");
     const [selectedBatch, setSelectedBatch] = useState("");
+    const [expandedMembers, setExpandedMembers] = useState<Record<string, boolean>>({});
+
+    const toggleMemberExpand = (id: string) => {
+        setExpandedMembers(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    // --- Master Data Options state ---
+    const [masterOptions, setMasterOptions] = useState<IMasterDataOption[]>([]);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,6 +53,7 @@ export default function TeamManagement() {
 
     // Deletion Modal State
     const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     const deleteImageFromCloudinary = async (url: string) => {
         if (!url || !url.includes("res.cloudinary.com")) return;
@@ -52,6 +66,7 @@ export default function TeamManagement() {
 
     const [formValues, setFormValues] = useState({
         fullname: "",
+        registerNumber: "",
         email: "",
         pic: "",
         department: "",
@@ -96,6 +111,17 @@ export default function TeamManagement() {
         setDragStart({ x: touch.clientX, y: touch.clientY });
     };
 
+    const fetchMasterData = async () => {
+        try {
+            const res = await MasterDataServices.getMasterData();
+            if (res.success && res.data) {
+                setMasterOptions(res.data);
+            }
+        } catch (err) {
+            console.error("Error fetching master data:", err);
+        }
+    };
+
     const fetchTeamMembers = async () => {
         setLoadingTeam(true);
         try {
@@ -119,6 +145,7 @@ export default function TeamManagement() {
                     setAdmin(data.admin);
                     setLoading(false);
                     fetchTeamMembers();
+                    fetchMasterData();
                 } else {
                     navigate("/admin/login");
                 }
@@ -162,6 +189,7 @@ export default function TeamManagement() {
         setCropSrc("");
         setFormValues({
             fullname: "",
+            registerNumber: "",
             email: "",
             pic: "",
             department: "",
@@ -182,6 +210,7 @@ export default function TeamManagement() {
         setCropSrc("");
         setFormValues({
             fullname: member.fullname,
+            registerNumber: member.registerNumber || "",
             email: member.email,
             pic: member.pic || "",
             department: member.department,
@@ -368,6 +397,11 @@ export default function TeamManagement() {
             return;
         }
 
+        if (!formValues.registerNumber.trim()) {
+            setModalError("Register number is required.");
+            return;
+        }
+
         // Enforce constraint: LinkedIn or GitHub profile link must be filled out
         if (!formValues.Linkedin.trim() && !formValues.github.trim()) {
             setModalError("At least one social profile link (LinkedIn or GitHub) must be provided.");
@@ -412,76 +446,10 @@ export default function TeamManagement() {
         }
     };
 
-    const handleLogout = async () => {
-        try {
-            await authService.logout();
-            navigate("/admin/login");
-        } catch (error) {
-            console.error("Logout failed:", error);
-            navigate("/admin/login");
-        }
-    };
 
-    if (loading) {
-        return <AdminLoader />;
-    }
 
-    const navigationItems = [
-        {
-            id: "dashboard",
-            label: "Dashboard",
-            path: "/admin/dashboard",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="9" />
-                    <rect x="14" y="3" width="7" height="5" />
-                    <rect x="14" y="12" width="7" height="9" />
-                    <rect x="3" y="16" width="7" height="5" />
-                </svg>
-            ),
-        },
-        {
-            id: "team",
-            label: "Team management",
-            path: "/admin/team",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-            ),
-        },
-        {
-            id: "projects",
-            label: "Projects",
-            path: "/admin/projects",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-            ),
-        },
-
-        {
-            id: "new_members",
-            label: "new members",
-            path: "/admin/new-members",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <line x1="19" y1="8" x2="19" y2="14" />
-                    <line x1="16" y1="11" x2="22" y2="11" />
-                </svg>
-            ),
-        },
-
-    ];
-
-    const departments = Array.from(new Set(teamMembers.map(m => m.department))).filter(Boolean);
-    const batches = Array.from(new Set(teamMembers.map(m => m.batch))).filter(Boolean);
+    const departments = masterOptions.filter(o => o.category === "department").map(o => o.value);
+    const batches = masterOptions.filter(o => o.category === "batch").map(o => o.value);
 
     const filteredMembers = teamMembers.filter(m => {
         const matchesSearch =
@@ -496,267 +464,295 @@ export default function TeamManagement() {
     });
 
     return (
-        <div className="min-h-screen bg-[#050505] flex text-white relative">
+        <div className="min-h-screen bg-[#050505] flex text-white relative admin-workspace">
             {/* Ambient Background Glows */}
             <div className="absolute top-[5%] right-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
             <div className="absolute bottom-[5%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
 
-            {/* SIDEBAR */}
-            <aside className="hidden lg:flex flex-col justify-between w-64 bg-white/[0.02] border-r border-white/5 p-6 z-10 select-none flex-shrink-0">
-                <div className="space-y-8">
-                    <div className="flex items-center gap-3">
-                        <img
-                            src="/assets/HiveMind-Logo.png"
-                            alt="HiveMind Logo"
-                            className="h-10 w-auto filter drop-shadow-[0_0_8px_rgba(255,193,7,0.3)]"
-                        />
-                        <div>
-                            <h2 className="text-sm font-black uppercase tracking-widest text-gold-sweep">
-                                HiveMind Admin
-                            </h2>
-                            <span className="text-[8px] text-[#666666] tracking-widest uppercase block">
-                                Control Center
-                            </span>
-                        </div>
-                    </div>
-
-                    <nav className="space-y-1.5">
-                        {navigationItems.map((item) => {
-                            const isActive = item.id === "team";
-                            return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => navigate(item.path)}
-                                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${isActive
-                                        ? "bg-gold-primary/10 border border-gold-primary/20 text-gold-primary [text-shadow:0_0_10px_rgba(255,193,7,0.25)] shadow-[0_4px_15px_rgba(255,193,7,0.05)]"
-                                        : "bg-transparent border border-transparent text-[#888888] hover:text-white hover:bg-white/[0.01]"
-                                        }`}
-                                >
-                                    {item.icon}
-                                    {item.label}
-                                </button>
-                            );
-                        })}
-                    </nav>
-                </div>
-
-                <div className="space-y-4 border-t border-white/5 pt-4">
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all cursor-pointer bg-transparent border-none"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                        Sign Out
-                    </button>
-                </div>
-            </aside>
+            {/* SHARED SIDEBAR COMPONENT */}
+            <AdminSidebar
+                activeTab="team"
+                isMobileSidebarOpen={isMobileSidebarOpen}
+                setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+                admin={admin}
+            />
 
             {/* MAIN WORKSPACE */}
-            <div className="flex-1 flex flex-col min-w-0 z-10">
-                <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 bg-white/[0.01] backdrop-blur-xs select-none">
-                    <h1 className="text-sm font-black uppercase tracking-wider text-white">
-                        Admin Workspace
-                    </h1>
-                    <div className="w-8 h-8 rounded-full bg-gold-primary/10 border border-gold-primary/20 flex items-center justify-center text-xs font-bold text-gold-primary uppercase [text-shadow:0_0_8px_rgba(255,193,7,0.3)] shadow-[0_0_12px_rgba(255,193,7,0.05)]">
+            <div className="flex-1 flex flex-col min-w-0 z-10 overflow-y-auto">
+                {/* Mobile Top Header */}
+                <header className="lg:hidden flex justify-between items-center bg-white/[0.02] border-b border-white/5 p-4 shadow-md backdrop-blur-md sticky top-0 z-30">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsMobileSidebarOpen(true)}
+                            className="text-white hover:text-gold-primary transition-colors focus:outline-none cursor-pointer bg-transparent border-none"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="3" y1="12" x2="21" y2="12" />
+                                <line x1="3" y1="6" x2="21" y2="6" />
+                                <line x1="3" y1="18" x2="21" y2="18" />
+                            </svg>
+                        </button>
+                        <h1 className="text-sm font-black uppercase tracking-widest text-gold-sweep">
+                            Admin Panel
+                        </h1>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-gold-primary/10 flex items-center justify-center font-bold text-xs text-gold-primary">
                         {admin?.name?.substring(0, 2).toUpperCase() || "AD"}
                     </div>
                 </header>
 
                 <main className="flex-1 p-6 sm:p-10 md:p-12">
-                    <div className="space-y-8 animate-text-entrance">
-                        <section className="bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.005] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-lg">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                                <div>
-                                    <h2 className="text-xl font-extrabold uppercase tracking-wider text-white">
-                                        Team Management
-                                    </h2>
-                                    <p className="text-xs text-[#888888] mt-1">
-                                        Manage SCAS AI Supercomputing Lab researchers, leads, and mentors.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={openAddModal}
-                                    className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black border-none py-2.5 px-5 text-xs font-extrabold tracking-widest uppercase rounded-full cursor-pointer shadow-[0_4px_15px_rgba(255,193,7,0.2)] transition-all duration-300 hover:scale-102 hover:shadow-[0_6px_20px_rgba(255,193,7,0.3)] active:scale-100"
-                                >
-                                    Add Member
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 bg-white/[0.01] border border-white/5 p-4 rounded-2xl">
-                                <div className="flex flex-col gap-1.5 col-span-1">
-                                    <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Search</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by name or email..."
-                                        className="bg-white/[0.02] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Department</label>
-                                    <select
-                                        className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                        value={selectedDept}
-                                        onChange={(e) => setSelectedDept(e.target.value)}
+                    {loading ? (
+                        <AdminLoader isComponent={true} />
+                    ) : (
+                        <div className="space-y-8 animate-fade-in-up">
+                            <section className="bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.005] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-lg">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                    <div>
+                                        <h2 className="text-xl font-extrabold uppercase tracking-wider text-white">
+                                            Team Management
+                                        </h2>
+                                        <p className="text-xs text-[#888888] mt-1">
+                                            Manage SCAS AI Supercomputing Lab researchers, leads, and mentors.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={openAddModal}
+                                        className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black border-none py-2.5 px-5 text-xs font-extrabold tracking-widest uppercase rounded-full cursor-pointer shadow-[0_4px_15px_rgba(255,193,7,0.2)] transition-all duration-300 hover:scale-102 hover:shadow-[0_6px_20px_rgba(255,193,7,0.3)] active:scale-100"
                                     >
-                                        <option value="">All Departments</option>
-                                        {departments.map(dept => (
-                                            <option key={dept} value={dept}>{dept}</option>
-                                        ))}
-                                    </select>
+                                        Add Member
+                                    </button>
                                 </div>
 
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Year</label>
-                                    <select
-                                        className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(e.target.value)}
-                                    >
-                                        <option value="">All Years</option>
-                                        <option value="1st">1st Year</option>
-                                        <option value="2nd">2nd Year</option>
-                                        <option value="3rd">3rd Year</option>
-                                        <option value="4th">4th Year</option>
-                                    </select>
+                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 bg-white/[0.01] border border-white/5 p-4 rounded-2xl">
+                                    <div className="flex flex-col gap-1.5 col-span-1">
+                                        <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Search</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Search by name or email..."
+                                            className="bg-white/[0.02] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5 col-span-1">
+                                        <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Department</label>
+                                        <select
+                                            className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary cursor-pointer select-none"
+                                            value={selectedDept}
+                                            onChange={(e) => setSelectedDept(e.target.value)}
+                                        >
+                                            <option value="">All Departments</option>
+                                            {departments.map((dept, idx) => (
+                                                <option key={idx} value={dept}>{dept}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5 col-span-1">
+                                        <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Year</label>
+                                        <select
+                                            className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary cursor-pointer select-none"
+                                            value={selectedYear}
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                        >
+                                            <option value="">All Years</option>
+                                            <option value="1st">1st Year</option>
+                                            <option value="2nd">2nd Year</option>
+                                            <option value="3rd">3rd Year</option>
+                                            <option value="4th">4th Year</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5 col-span-1">
+                                        <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Batch</label>
+                                        <select
+                                            className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary cursor-pointer select-none"
+                                            value={selectedBatch}
+                                            onChange={(e) => setSelectedBatch(e.target.value)}
+                                        >
+                                            <option value="">All Batches</option>
+                                            {batches.map((batch, idx) => (
+                                                <option key={idx} value={batch}>{batch}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
 
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Batch</label>
-                                    <select
-                                        className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                        value={selectedBatch}
-                                        onChange={(e) => setSelectedBatch(e.target.value)}
-                                    >
-                                        <option value="">All Batches</option>
-                                        {batches.map(batch => (
-                                            <option key={batch} value={batch}>{batch}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
+                                {loadingTeam ? (
+                                    <div className="flex items-center justify-center gap-3 py-20 select-none">
+                                        <svg className="animate-spin h-5 w-5 text-gold-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span className="text-xs text-[#888888] uppercase tracking-wider font-bold">Loading members...</span>
+                                    </div>
+                                ) : filteredMembers.length === 0 ? (
+                                    <div className="py-20 text-center">
+                                        <span className="text-xs text-[#666666] uppercase tracking-widest block font-black">No team members found</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-4">
+                                        {filteredMembers.map(member => {
+                                            const isExpanded = !!expandedMembers[member._id];
+                                            return (
+                                                <div
+                                                    key={member._id}
+                                                    className={`bg-white/[0.01] border ${
+                                                        isExpanded ? "border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.4)] bg-white/[0.02]" : "border-white/5"
+                                                    } rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:bg-white/[0.015] hover:border-white/10`}
+                                                >
+                                                    {/* Card Header (clickable to expand/collapse) */}
+                                                    <div
+                                                        onClick={() => toggleMemberExpand(member._id)}
+                                                        className="flex items-center justify-between cursor-pointer select-none gap-4"
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            {/* Hexagonal Profile Picture with Status Dot */}
+                                                            <div className="relative flex-shrink-0">
+                                                                <div
+                                                                    className="relative w-11 h-12 p-[1px] bg-gradient-to-br from-gold-primary/20 to-gold-primary/60 flex-shrink-0"
+                                                                    style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                                                                >
+                                                                    <div
+                                                                        className="relative w-full h-full bg-[#0c0c0e] overflow-hidden flex items-center justify-center"
+                                                                        style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                                                                    >
+                                                                        {member.pic ? (
+                                                                            <img src={member.pic} alt="Profile" className="w-full h-full object-cover" />
+                                                                        ) : (
+                                                                            <span className="text-[10px] text-white/40 uppercase font-black tracking-wider">
+                                                                                {member.fullname.substring(0, 2)}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                {/* Status Dot */}
+                                                                <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#4caf50] border-2 border-[#050505] rounded-full" />
+                                                            </div>
 
-                            {loadingTeam ? (
-                                <div className="py-20 flex flex-col items-center justify-center gap-3">
-                                    <svg className="animate-spin h-8 w-8 text-gold-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span className="text-xs text-[#888888] uppercase tracking-wider font-bold">Loading members...</span>
-                                </div>
-                            ) : filteredMembers.length === 0 ? (
-                                <div className="py-20 text-center">
-                                    <span className="text-xs text-[#666666] uppercase tracking-widest block font-black">No team members found</span>
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-xs border-collapse">
-                                        <thead>
-                                            <tr className="border-b border-white/10 text-[#888888] uppercase font-bold tracking-wider">
-                                                <th className="pb-3 pl-4">Member</th>
-                                                <th className="pb-3">Details</th>
-                                                <th className="pb-3">Social Profiles</th>
-                                                <th className="pb-3 pr-4 text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5 text-[#DDDDDD]">
-                                            {filteredMembers.map(member => (
-                                                <tr key={member._id} className="hover:bg-white/[0.01] transition-colors">
-                                                    <td className="py-3.5 pl-4 font-bold text-white flex items-center gap-3">
-                                                        <div
-                                                            className="relative w-10 h-12 p-[1px] bg-gradient-to-br from-gold-primary/20 to-gold-primary/60 flex-shrink-0"
-                                                            style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
-                                                        >
-                                                            <div
-                                                                className="relative w-full h-full bg-white/[0.02] overflow-hidden flex items-center justify-center"
-                                                                style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
-                                                            >
-                                                                {member.pic ? (
-                                                                    <img src={member.pic} alt="Profile" className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    <span className="text-[10px] text-white/40 uppercase font-black tracking-wider">
-                                                                        {member.fullname.substring(0, 2)}
+                                                            {/* Name and Badges */}
+                                                            <div className="flex flex-col gap-1 min-w-0">
+                                                                <span className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
+                                                                    {member.fullname}
+                                                                </span>
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    {/* Department Badge */}
+                                                                    <span className="bg-[#007bff]/20 text-[#3897ff] border border-[#007bff]/30 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider">
+                                                                        {member.department}
                                                                     </span>
-                                                                )}
+                                                                    <span className="text-[#888888] text-[11px] font-medium tracking-wide">
+                                                                        {member.batch}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col">
-                                                            <span>{member.fullname}</span>
-                                                            <span className="text-[10px] text-[#666666] font-normal font-sans">{member.email}</span>
+
+                                                        {/* Expand/Collapse Chevron */}
+                                                        <div className="text-white/60 hover:text-white transition-colors flex-shrink-0">
+                                                            {isExpanded ? (
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <polyline points="18 15 12 9 6 15" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <polyline points="6 9 12 15 18 9" />
+                                                                </svg>
+                                                            )}
                                                         </div>
-                                                    </td>
-                                                    <td className="py-3.5">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-bold text-[#AAAAAA] uppercase text-[10px] tracking-wider">{member.department}</span>
-                                                            <span className="text-[9px] text-[#666666] uppercase tracking-wider font-semibold">
-                                                                {member.year} Year • Sec {member.section} • Batch {member.batch}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3.5">
-                                                        <div className="flex items-center gap-2">
-                                                            {member.Linkedin && (
-                                                                <a
-                                                                    href={member.Linkedin}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-xs text-[#888888] hover:text-gold-primary transition-colors"
+                                                    </div>
+
+                                                    {/* Expanded Body Panel */}
+                                                    {isExpanded && (
+                                                        <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in">
+                                                            <div className="flex flex-col gap-1.5">
+                                                                <span className="text-[11px] text-[#666666] font-semibold tracking-wide uppercase">
+                                                                    {member.year} Year • Sec {member.section} • Reg: {member.registerNumber || "N/A"} • {member.email}
+                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    {(!member.Linkedin && !member.github) ? (
+                                                                        <span className="text-[11px] text-[#777777] italic tracking-wide">
+                                                                            No social links linked.
+                                                                        </span>
+                                                                    ) : (
+                                                                        <>
+                                                                            {member.Linkedin && (
+                                                                                <a
+                                                                                    href={member.Linkedin}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="text-xs text-[#888888] hover:text-gold-primary transition-colors font-semibold"
+                                                                                >
+                                                                                    LinkedIn
+                                                                                </a>
+                                                                            )}
+                                                                            {member.Linkedin && member.github && (
+                                                                                <span className="text-white/10">•</span>
+                                                                            )}
+                                                                            {member.github && (
+                                                                                <a
+                                                                                    href={member.github}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="text-xs text-[#888888] hover:text-gold-primary transition-colors font-semibold"
+                                                                                >
+                                                                                    GitHub
+                                                                                </a>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Action buttons */}
+                                                            <div className="flex items-center gap-3">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openEditModal(member);
+                                                                    }}
+                                                                    className="border border-[#00bcd4]/30 hover:border-[#00bcd4]/60 text-[#00bcd4] bg-[#00bcd4]/5 hover:bg-[#00bcd4]/10 transition-colors px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                                                                 >
-                                                                    LinkedIn
-                                                                </a>
-                                                            )}
-                                                            {member.Linkedin && member.github && (
-                                                                <span className="text-white/10">•</span>
-                                                            )}
-                                                            {member.github && (
-                                                                <a
-                                                                    href={member.github}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-xs text-[#888888] hover:text-gold-primary transition-colors"
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                                    </svg>
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setMemberToDelete(member._id);
+                                                                    }}
+                                                                    className="border border-red-500/30 hover:border-red-500/60 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-colors px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                                                                 >
-                                                                    GitHub
-                                                                </a>
-                                                            )}
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <polyline points="3 6 5 6 21 6" />
+                                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                                    </svg>
+                                                                    Delete
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    </td>
-                                                    <td className="py-3.5 pr-4 text-right">
-                                                        <button
-                                                            onClick={() => openEditModal(member)}
-                                                            className="bg-white/5 hover:bg-white/10 text-white text-[9px] font-extrabold uppercase py-1 px-3.5 rounded-full mr-2 cursor-pointer transition-colors"
-                                                        >
-                                                            Edit
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setMemberToDelete(member._id)}
-                                                            className="bg-transparent border border-white/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-[9px] font-bold uppercase py-1 px-3.5 rounded-full cursor-pointer transition-colors"
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </section>
-                    </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </section>
+                        </div>
+                    )}
                 </main>
             </div>
 
             {/* Modals: Crop Upload / Form Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[9999] p-4 overflow-y-auto">
-                    <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-text-entrance">
+                    <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-fade-in">
                         {isUploading ? (
-                            <div className="flex flex-col items-center justify-center py-12 px-6 text-center select-none animate-text-entrance">
+                            <div className="flex flex-col items-center justify-center py-12 px-6 text-center select-none animate-fade-in">
                                 <div className="w-14 h-14 rounded-full border-2 border-white/5 border-t-gold-primary animate-spin mb-6" />
                                 <h4 className="text-sm font-black uppercase tracking-widest text-white mb-2">
                                     Uploading Photo
@@ -850,39 +846,57 @@ export default function TeamManagement() {
                                             />
                                         </div>
                                         <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Email Address *</label>
+                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Register Number *</label>
                                             <input
-                                                type="email"
+                                                type="text"
                                                 required
+                                                placeholder="e.g. 211422104001"
                                                 className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.email}
-                                                onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
+                                                value={formValues.registerNumber}
+                                                onChange={(e) => setFormValues({ ...formValues, registerNumber: e.target.value })}
                                             />
                                         </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Email Address *</label>
+                                        <input
+                                            type="email"
+                                            required
+                                            className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                            value={formValues.email}
+                                            onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
+                                        />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="flex flex-col gap-1.5">
                                             <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Department *</label>
-                                            <input
-                                                type="text"
+                                            <select
                                                 required
-                                                placeholder="e.g. CSE"
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
                                                 value={formValues.department}
                                                 onChange={(e) => setFormValues({ ...formValues, department: e.target.value })}
-                                            />
+                                            >
+                                                <option value="">Select Department</option>
+                                                {masterOptions.filter(o => o.category === "department").map(o => (
+                                                    <option key={o._id} value={o.value}>{o.value}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div className="flex flex-col gap-1.5">
                                             <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Section *</label>
-                                            <input
-                                                type="text"
+                                            <select
                                                 required
-                                                placeholder="e.g. A"
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
                                                 value={formValues.section}
                                                 onChange={(e) => setFormValues({ ...formValues, section: e.target.value })}
-                                            />
+                                            >
+                                                <option value="">Select Section</option>
+                                                {masterOptions.filter(o => o.category === "section").map(o => (
+                                                    <option key={o._id} value={o.value}>{o.value}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
 
@@ -895,22 +909,25 @@ export default function TeamManagement() {
                                                 value={formValues.year}
                                                 onChange={(e) => setFormValues({ ...formValues, year: e.target.value as any })}
                                             >
-                                                <option value="1st">1st Year</option>
-                                                <option value="2nd">2nd Year</option>
-                                                <option value="3rd">3rd Year</option>
-                                                <option value="4th">4th Year</option>
+                                                <option value="">Select Year</option>
+                                                {masterOptions.filter(o => o.category === "year").map(o => (
+                                                    <option key={o._id} value={o.value}>{o.value} Year</option>
+                                                ))}
                                             </select>
                                         </div>
                                         <div className="flex flex-col gap-1.5">
                                             <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Batch *</label>
-                                            <input
-                                                type="text"
+                                            <select
                                                 required
-                                                placeholder="e.g. 2023-2027"
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
                                                 value={formValues.batch}
                                                 onChange={(e) => setFormValues({ ...formValues, batch: e.target.value })}
-                                            />
+                                            >
+                                                <option value="">Select Batch</option>
+                                                {masterOptions.filter(o => o.category === "batch").map(o => (
+                                                    <option key={o._id} value={o.value}>{o.value}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
 
@@ -962,7 +979,7 @@ export default function TeamManagement() {
             {/* Custom Delete Confirmation Modal */}
             {memberToDelete && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
-                    <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-text-entrance">
+                    <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-fade-in">
                         <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="3 6 5 6 21 6" />

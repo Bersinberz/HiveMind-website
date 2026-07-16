@@ -2,34 +2,54 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import authService, { type AdminUser } from "../../services/admin/authService";
 import AdminLoader from "../../compoenets/AdminLoader";
-import NewMemberServices, { type NewMember } from "../../services/admin/NewMemberServices";
+import ApplicationServices, { type Application } from "../../services/admin/ApplicationServices";
+import AdminSidebar from "../../compoenets/AdminSidebar";
+import TelemetryServices, { type IDashboardStats } from "../../services/admin/TelemetryServices";
 
 
-type AdminTab = "dashboard" | "team" | "projects" | "new_members";
+type AdminTab = "dashboard" | "team" | "projects" | "applications" | "community_settings" | "master_data";
 
 export default function AdminDashboard() {
     const navigate = useNavigate();
     const [admin, setAdmin] = useState<AdminUser | null>(null);
     const [loading, setLoading] = useState(true);
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const activeTab = (searchParams.get("tab") as AdminTab) || "dashboard";
-    const setActiveTab = (newTab: AdminTab) => {
-        setSearchParams({ tab: newTab });
-    };
 
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+    // --- Telemetry Dashboard State ---
+    const [stats, setStats] = useState<IDashboardStats | null>(null);
+    const [loadingStats, setLoadingStats] = useState(true);
+
+    const fetchStats = async () => {
+        try {
+            const res = await TelemetryServices.getDashboardStats();
+            if (res.success && res.stats) {
+                setStats(res.stats);
+            }
+        } catch (err) {
+            console.error("Error fetching telemetry stats:", err);
+        } finally {
+            setLoadingStats(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
     // --- Candidate Applications State ---
-    const [applications, setApplications] = useState<NewMember[]>([]);
+    const [applications, setApplications] = useState<Application[]>([]);
     const [loadingApps, setLoadingApps] = useState(false);
-    const [selectedApp, setSelectedApp] = useState<NewMember | null>(null);
+    const [selectedApp, setSelectedApp] = useState<Application | null>(null);
     const [appToDelete, setAppToDelete] = useState<string | null>(null);
-    const [newMembersSubTab, setNewMembersSubTab] = useState<"pending" | "accepted" | "rejected">("pending");
+    const [applicationsSubTab, setApplicationsSubTab] = useState<"pending" | "accepted" | "rejected">("pending");
 
     const fetchApplications = async () => {
         setLoadingApps(true);
         try {
-            const res = await NewMemberServices.getApplications();
+            const res = await ApplicationServices.getApplications();
             if (res.success && res.applications) {
                 setApplications(res.applications);
             }
@@ -41,14 +61,14 @@ export default function AdminDashboard() {
     };
 
     useEffect(() => {
-        if (activeTab === "new_members") {
+        if (activeTab === "applications") {
             fetchApplications();
         }
     }, [activeTab]);
 
-    const handleUpdateStatus = async (id: string, status: NewMember["status"]) => {
+    const handleUpdateStatus = async (id: string, status: Application["status"]) => {
         try {
-            const res = await NewMemberServices.updateApplicationStatus(id, status);
+            const res = await ApplicationServices.updateApplicationStatus(id, status);
             if (res.success) {
                 fetchApplications();
             } else {
@@ -61,7 +81,7 @@ export default function AdminDashboard() {
 
     const executeDeleteApp = async (id: string) => {
         try {
-            const res = await NewMemberServices.deleteApplication(id);
+            const res = await ApplicationServices.deleteApplication(id);
             if (res.success) {
                 fetchApplications();
             } else {
@@ -78,6 +98,12 @@ export default function AdminDashboard() {
             navigate("/admin/team");
         } else if (activeTab === "projects") {
             navigate("/admin/projects");
+        } else if (activeTab === "applications") {
+            navigate("/admin/applications");
+        } else if (activeTab === "community_settings") {
+            navigate("/admin/community-settings");
+        } else if (activeTab === "master_data") {
+            navigate("/admin/master-data");
         }
     }, [activeTab, navigate]);
 
@@ -98,132 +124,287 @@ export default function AdminDashboard() {
             });
     }, [navigate]);
 
-    const handleLogout = async () => {
-        try {
-            await authService.logout();
-            navigate("/admin/login");
-        } catch (error) {
-            console.error("Logout failed:", error);
-            navigate("/admin/login");
-        }
-    };
-
-    if (loading) {
-        return <AdminLoader />;
-    }
 
     // ==========================================
     // SUB-VIEWS RENDERING LOGIC
     // ==========================================
 
     // 1. Dashboard View
-    const renderDashboardView = () => (
-        <div className="space-y-8 animate-text-entrance">
-            <section className="bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.005] border border-white/5 rounded-3xl p-8 shadow-lg">
-                <h2 className="text-xl font-extrabold uppercase tracking-wider text-white mb-4">
-                    System Status Overview
-                </h2>
-                <p className="text-sm text-[#AAAAAA] leading-relaxed mb-6">
-                    Welcome back, <strong className="text-white">{admin?.name}</strong>. The Sathyabama AI Supercomputing nodes are operating at normal limits. Core cluster telemetry details and server metrics are updated below.
-                </p>
+    const renderDashboardView = () => {
+        if (loadingStats) {
+            return <AdminLoader isComponent={true} />;
+        }
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 text-center">
-                        <span className="text-[10px] font-bold text-[#666666] uppercase tracking-wider block mb-1">
-                            Cluster Load
-                        </span>
-                        <span className="text-2xl font-black text-gold-primary">34.8%</span>
+        return (
+            <div className="space-y-8 animate-fade-in-up text-left">
+                {/* Welcome Message Header */}
+                <div className="flex flex-col gap-1.5 text-left mb-2">
+                    <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white">
+                        Welcome, {admin?.name || "Admin"}
+                    </h2>
+                    <p className="text-xs text-[#888888]">
+                        Here is what's happening with the HiveMind lab today.
+                    </p>
+                </div>
+
+                {/* Dynamic Telemetry Stats Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Total Members */}
+                    <div className="bg-gradient-to-br from-white/[0.02] to-white/[0.005] border border-white/5 hover:border-gold-primary/20 rounded-3xl p-6 transition-all duration-300 group shadow-md">
+                        <div className="flex justify-between items-start mb-4">
+                            <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider">Total Members</span>
+                            <div className="p-2 rounded-xl bg-gold-primary/10 text-gold-primary border border-gold-primary/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 className="text-3xl font-black text-white group-hover:text-gold-primary transition-colors">{stats?.totalMembers ?? 0}</h3>
+                        <span className="text-[9px] text-[#666666] uppercase font-bold tracking-wider mt-1 block">Active Lab Researchers</span>
                     </div>
-                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 text-center">
-                        <span className="text-[10px] font-bold text-[#666666] uppercase tracking-wider block mb-1">
-                            Active Nodes
-                        </span>
-                        <span className="text-2xl font-black text-white">16 / 16</span>
+
+                    {/* Total Projects */}
+                    <div className="bg-gradient-to-br from-white/[0.02] to-white/[0.005] border border-white/5 hover:border-gold-primary/20 rounded-3xl p-6 transition-all duration-300 group shadow-md">
+                        <div className="flex justify-between items-start mb-4">
+                            <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider">Total Projects</span>
+                            <div className="p-2 rounded-xl bg-gold-primary/10 text-gold-primary border border-gold-primary/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 className="text-3xl font-black text-white group-hover:text-gold-primary transition-colors">{stats?.totalProjects ?? 0}</h3>
+                        <span className="text-[9px] text-[#666666] uppercase font-bold tracking-wider mt-1 block">AI Pipelines Registered</span>
                     </div>
-                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 text-center">
-                        <span className="text-[10px] font-bold text-[#666666] uppercase tracking-wider block mb-1">
-                            Network Latency
-                        </span>
-                        <span className="text-2xl font-black text-emerald-400">1.2 ms</span>
+
+                    {/* Pending Applications */}
+                    <div className="bg-gradient-to-br from-white/[0.02] to-white/[0.005] border border-white/5 hover:border-gold-primary/20 rounded-3xl p-6 transition-all duration-300 group shadow-md">
+                        <div className="flex justify-between items-start mb-4">
+                            <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider">Pending Applications</span>
+                            <div className="p-2 rounded-xl bg-gold-primary/10 text-gold-primary border border-gold-primary/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <line x1="19" y1="8" x2="19" y2="14" />
+                                    <line x1="16" y1="11" x2="22" y2="11" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 className="text-3xl font-black text-white group-hover:text-gold-primary transition-colors">{stats?.pendingApplications ?? 0}</h3>
+                        <span className="text-[9px] text-[#666666] uppercase font-bold tracking-wider mt-1 block">Requires Review</span>
+                    </div>
+
+                    {/* Website Visitors */}
+                    <div className="bg-gradient-to-br from-white/[0.02] to-white/[0.005] border border-white/5 hover:border-gold-primary/20 rounded-3xl p-6 transition-all duration-300 group shadow-md">
+                        <div className="flex justify-between items-start mb-4">
+                            <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider">Website Visitors</span>
+                            <div className="p-2 rounded-xl bg-gold-primary/10 text-gold-primary border border-gold-primary/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 className="text-3xl font-black text-white group-hover:text-gold-primary transition-colors">{stats?.totalVisitors ?? 0}</h3>
+                        <span className="text-[9px] text-[#666666] uppercase font-bold tracking-wider mt-1 block">Aggregate Portal Hits</span>
                     </div>
                 </div>
-            </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-lg">
-                    <h3 className="text-base font-bold uppercase tracking-wider mb-6 text-white border-b border-white/5 pb-3">
-                        Recent Lab Activities
-                    </h3>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between text-xs py-2 border-b border-white/5">
-                            <div className="flex items-center gap-3">
-                                <span className="w-2 h-2 rounded-full bg-gold-primary animate-pulse" />
-                                <span className="text-white">Admin user login initiated</span>
+                {/* Main Dashboard Panel Layout Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column: Recent Activities */}
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* Recent Activities */}
+                        <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-lg">
+                            <h3 className="text-base font-bold uppercase tracking-wider mb-6 text-white border-b border-white/5 pb-3">
+                                Recent Activities
+                            </h3>
+                            <div className="space-y-4">
+                                {stats?.recentActivities && stats.recentActivities.length > 0 ? (
+                                    stats.recentActivities.map((act) => (
+                                        <div key={act.id} className="flex items-start justify-between text-xs py-3 border-b border-white/5 last:border-0 last:pb-0">
+                                            <div className="flex gap-3">
+                                                <span className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 ${
+                                                    act.type === "member" ? "bg-emerald-500" :
+                                                    act.type === "project" ? "bg-blue-500" :
+                                                    "bg-gold-primary animate-pulse"
+                                                }`} />
+                                                <div>
+                                                    <span className="text-white font-bold block">{act.title}</span>
+                                                    <span className="text-[#AAAAAA] mt-0.5 block">{act.description}</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-[#666666] shrink-0 font-semibold text-[10px] ml-4">
+                                                {new Date(act.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                            </span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-6 text-xs text-[#666666] uppercase tracking-wider font-bold">No recent activities found</div>
+                                )}
                             </div>
-                            <span className="text-[#666666]">{admin?.email}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs py-2 border-b border-white/5">
-                            <div className="flex items-center gap-3">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                <span className="text-[#AAAAAA]">GPU Node #4 LLaMA fine-tuning complete</span>
-                            </div>
-                            <span className="text-[#666666]">10 mins ago</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs py-2 border-b border-white/5">
-                            <div className="flex items-center gap-3">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                <span className="text-[#AAAAAA]">RAG Pipeline database re-indexing finished</span>
-                            </div>
-                            <span className="text-[#666666]">42 mins ago</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs py-2">
-                            <div className="flex items-center gap-3">
-                                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                                <span className="text-[#AAAAAA]">System backup archive scheduled</span>
-                            </div>
-                            <span className="text-[#666666]">2 hours ago</span>
-                        </div>
-                    </div>
-                </section>
+                        </section>
 
-                <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-lg">
-                    <h3 className="text-base font-bold uppercase tracking-wider mb-6 text-white border-b border-white/5 pb-3">
-                        Administrator Profile
-                    </h3>
-                    <div className="space-y-4">
-                        <div>
-                            <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">
-                                Full Name
-                            </span>
-                            <span className="text-sm font-semibold text-white">{admin?.name}</span>
-                        </div>
-                        <div>
-                            <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">
-                                Email Address
-                            </span>
-                            <span className="text-sm font-semibold text-white">{admin?.email}</span>
-                        </div>
-                        <div>
-                            <span className="text-[9px] font-bold text-[#666666] uppercase tracking-wider block">
-                                Assigned Role
-                            </span>
-                            <span className="text-xs font-bold text-gold-primary uppercase tracking-widest bg-gold-primary/10 border border-gold-primary/20 rounded-full px-3 py-1 mt-1 inline-block">
-                                {admin?.role}
-                            </span>
-                        </div>
-                        <div className="pt-4 border-t border-white/5">
-                            <div className="flex items-center justify-between text-xs bg-white/[0.01] border border-white/5 p-3 rounded-xl">
-                                <span>Session Security</span>
-                                <span className="text-gold-primary font-bold uppercase tracking-widest text-[9px]">
-                                    HttpOnly Cookie
-                                </span>
+                        {/* Traffic & Engagement Trend SVG Graph */}
+                        <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-lg">
+                            <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-3">
+                                <div>
+                                    <h3 className="text-base font-bold uppercase tracking-wider text-white">
+                                        Traffic & Engagement Trend
+                                    </h3>
+                                    <p className="text-[10px] text-[#888888] mt-0.5 uppercase tracking-wider font-semibold">
+                                        Portal visits over the last 7 days
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-4 text-[10px] font-bold text-[#888888] uppercase tracking-wider">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-gold-primary" />
+                                        Visits
+                                    </span>
+                                </div>
                             </div>
-                        </div>
+
+                            {/* Custom SVG Line/Area Graph */}
+                            <div className="relative w-full h-64 mt-4 select-none">
+                                <svg className="w-full h-full" viewBox="0 0 600 220" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#FFC107" stopOpacity="0.15" />
+                                            <stop offset="100%" stopColor="#FFC107" stopOpacity="0.0" />
+                                        </linearGradient>
+                                    </defs>
+
+                                    {/* Grid Lines */}
+                                    <line x1="50" y1="30" x2="560" y2="30" stroke="white" strokeOpacity="0.04" strokeDasharray="4 4" />
+                                    <line x1="50" y1="80" x2="560" y2="80" stroke="white" strokeOpacity="0.04" strokeDasharray="4 4" />
+                                    <line x1="50" y1="130" x2="560" y2="130" stroke="white" strokeOpacity="0.04" strokeDasharray="4 4" />
+                                    <line x1="50" y1="180" x2="560" y2="180" stroke="white" strokeOpacity="0.04" />
+
+                                    {/* Y Axis Labels */}
+                                    <text x="25" y="34" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">150</text>
+                                    <text x="25" y="84" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">100</text>
+                                    <text x="25" y="134" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">50</text>
+                                    <text x="25" y="184" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">0</text>
+
+                                    {/* SVG Area Under Path */}
+                                    <path
+                                        d="M 50 180 Q 135 125, 135 125 Q 220 155, 220 155 Q 305 75, 305 75 Q 390 35, 390 35 Q 475 95, 475 95 Q 560 50, 560 50 L 560 180 Z"
+                                        fill="url(#chartGradient)"
+                                    />
+
+                                    {/* SVG Path Curve */}
+                                    <path
+                                        d="M 50 180 Q 135 125, 135 125 Q 220 155, 220 155 Q 305 75, 305 75 Q 390 35, 390 35 Q 475 95, 475 95 Q 560 50, 560 50"
+                                        fill="none"
+                                        stroke="#FFC107"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="drop-shadow-[0_0_6px_rgba(255,193,7,0.3)]"
+                                    />
+
+                                    {/* Peak Points (Data Nodes) */}
+                                    {/* Mon: 0 */}
+                                    <circle cx="50" cy="180" r="4.5" fill="#FFC107" stroke="#050505" strokeWidth="1.5" />
+                                    {/* Tue: 45 */}
+                                    <circle cx="135" cy="125" r="4.5" fill="#FFC107" stroke="#050505" strokeWidth="1.5" />
+                                    {/* Wed: 25 */}
+                                    <circle cx="220" cy="155" r="4.5" fill="#FFC107" stroke="#050505" strokeWidth="1.5" />
+                                    {/* Thu: 85 */}
+                                    <circle cx="305" cy="75" r="4.5" fill="#FFC107" stroke="#050505" strokeWidth="1.5" />
+                                    {/* Fri: 124 */}
+                                    <circle cx="390" cy="35" r="4.5" fill="#FFC107" stroke="#050505" strokeWidth="1.5" />
+                                    {/* Sat: 65 */}
+                                    <circle cx="475" cy="95" r="4.5" fill="#FFC107" stroke="#050505" strokeWidth="1.5" />
+                                    {/* Sun: 115 */}
+                                    <circle cx="560" cy="50" r="4.5" fill="#FFC107" stroke="#050505" strokeWidth="1.5" />
+
+                                    {/* X Axis Labels */}
+                                    <text x="50" y="210" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">Mon</text>
+                                    <text x="135" y="210" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">Tue</text>
+                                    <text x="220" y="210" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">Wed</text>
+                                    <text x="305" y="210" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">Thu</text>
+                                    <text x="390" y="210" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">Fri</text>
+                                    <text x="475" y="210" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">Sat</text>
+                                    <text x="560" y="210" fill="#666666" fontSize="10" fontWeight="bold" textAnchor="middle">Sun</text>
+                                </svg>
+                            </div>
+                        </section>
                     </div>
-                </section>
+
+                    {/* Right Column: Quick Actions & Status/Performance Telemetry */}
+                    <div className="space-y-8">
+                        {/* Quick Actions Panel */}
+                        <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-lg">
+                            <h3 className="text-base font-bold uppercase tracking-wider mb-6 text-white border-b border-white/5 pb-3">
+                                Quick Actions
+                            </h3>
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    onClick={() => navigate("/admin/team")}
+                                    className="w-full flex items-center justify-between bg-white/[0.02] hover:bg-gold-primary/10 border border-white/5 hover:border-gold-primary/20 text-white rounded-2xl p-4 transition-all duration-300 font-bold uppercase tracking-wider text-xs text-left cursor-pointer group"
+                                >
+                                    <span>Add Team Member</span>
+                                    <span className="text-[#888888] group-hover:text-gold-primary transition-colors">&rarr;</span>
+                                </button>
+                                <button 
+                                    onClick={() => navigate("/admin/projects")}
+                                    className="w-full flex items-center justify-between bg-white/[0.02] hover:bg-gold-primary/10 border border-white/5 hover:border-gold-primary/20 text-white rounded-2xl p-4 transition-all duration-300 font-bold uppercase tracking-wider text-xs text-left cursor-pointer group"
+                                >
+                                    <span>Register New Project</span>
+                                    <span className="text-[#888888] group-hover:text-gold-primary transition-colors">&rarr;</span>
+                                </button>
+                                <button 
+                                    onClick={() => navigate("/admin/community-settings")}
+                                    className="w-full flex items-center justify-between bg-white/[0.02] hover:bg-gold-primary/10 border border-white/5 hover:border-gold-primary/20 text-white rounded-2xl p-4 transition-all duration-300 font-bold uppercase tracking-wider text-xs text-left cursor-pointer group"
+                                >
+                                    <span>Community Configuration</span>
+                                    <span className="text-[#888888] group-hover:text-gold-primary transition-colors">&rarr;</span>
+                                </button>
+                                <button 
+                                    onClick={() => navigate("/admin/master-data")}
+                                    className="w-full flex items-center justify-between bg-white/[0.02] hover:bg-gold-primary/10 border border-white/5 hover:border-gold-primary/20 text-white rounded-2xl p-4 transition-all duration-300 font-bold uppercase tracking-wider text-xs text-left cursor-pointer group"
+                                >
+                                    <span>Configure Dropdown Options</span>
+                                    <span className="text-[#888888] group-hover:text-gold-primary transition-colors">&rarr;</span>
+                                </button>
+                            </div>
+                        </section>
+
+
+
+                        {/* Website Performance Panel */}
+                        <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-lg">
+                            <h3 className="text-base font-bold uppercase tracking-wider mb-6 text-white border-b border-white/5 pb-3">
+                                Website Performance
+                            </h3>
+                            <div className="space-y-4 text-xs">
+                                <div className="flex justify-between items-center bg-white/[0.01] border border-white/5 p-3 rounded-xl">
+                                    <span className="text-[#888888]">Visitors Today</span>
+                                    <span className="text-white font-bold">124</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-white/[0.01] border border-white/5 p-3 rounded-xl">
+                                    <span className="text-[#888888]">Most Viewed Page</span>
+                                    <span className="text-gold-primary font-bold uppercase tracking-widest text-[9px]">Projects</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-white/[0.01] border border-white/5 p-3 rounded-xl">
+                                    <span className="text-[#888888]">Bounce Rate</span>
+                                    <span className="text-white font-bold">27%</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-white/[0.01] border border-white/5 p-3 rounded-xl">
+                                    <span className="text-[#888888]">Average Visit</span>
+                                    <span className="text-white font-bold">3m 42s</span>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     // 2. Team Management Redirect Placeholder
     const renderTeamView = () => (
@@ -234,7 +415,7 @@ export default function AdminDashboard() {
 
     // 3. Projects View
     const renderProjectsView = () => (
-        <div className="space-y-8 animate-text-entrance">
+        <div className="space-y-8 animate-fade-in">
             <section className="bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.005] border border-white/5 rounded-3xl p-8 shadow-lg">
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -293,27 +474,27 @@ export default function AdminDashboard() {
 
 
 
-    // 5. New Members View (Applications under review)
-    const renderNewMembersView = () => {
+    // 5. Applications View (Applications under review)
+    const renderApplicationsView = () => {
         const pendingApps = applications.filter(app => app.status !== "Approved" && app.status !== "Rejected");
         const acceptedApps = applications.filter(app => app.status === "Approved");
         const rejectedApps = applications.filter(app => app.status === "Rejected");
         
         const activeList = 
-            newMembersSubTab === "pending" ? pendingApps : 
-            newMembersSubTab === "accepted" ? acceptedApps : 
+            applicationsSubTab === "pending" ? pendingApps : 
+            applicationsSubTab === "accepted" ? acceptedApps : 
             rejectedApps;
 
         return (
-            <div className="space-y-8 animate-text-entrance">
+            <div className="space-y-8 animate-fade-in">
                 <section className="bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.005] border border-white/5 rounded-3xl p-8 shadow-lg">
                     <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
                         <div>
                             <h2 className="text-xl font-extrabold uppercase tracking-wider text-white">
-                                New Member Applications
+                                Applications Management
                             </h2>
                             <p className="text-xs text-[#888888] mt-1">
-                                Review student registration queries submitted via the landing page apply portal.
+                                Review student registration applications submitted via the landing page join portal.
                             </p>
                         </div>
                         <button 
@@ -327,9 +508,9 @@ export default function AdminDashboard() {
                     {/* Sub-tab Switcher Menu */}
                     <div className="flex flex-wrap gap-4 sm:gap-6 mb-8 border-b border-white/5">
                         <button
-                            onClick={() => setNewMembersSubTab("pending")}
+                            onClick={() => setApplicationsSubTab("pending")}
                             className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer border-b-2 bg-transparent border-none ${
-                                newMembersSubTab === "pending"
+                                applicationsSubTab === "pending"
                                     ? "border-gold-primary text-gold-primary"
                                     : "border-transparent text-[#888888] hover:text-white"
                             }`}
@@ -337,19 +518,19 @@ export default function AdminDashboard() {
                             Pending Review ({pendingApps.length})
                         </button>
                         <button
-                            onClick={() => setNewMembersSubTab("accepted")}
+                            onClick={() => setApplicationsSubTab("accepted")}
                             className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer border-b-2 bg-transparent border-none ${
-                                newMembersSubTab === "accepted"
+                                applicationsSubTab === "accepted"
                                     ? "border-gold-primary text-gold-primary"
                                     : "border-transparent text-[#888888] hover:text-white"
                             }`}
                         >
-                            Accepted Members ({acceptedApps.length})
+                            Accepted ({acceptedApps.length})
                         </button>
                         <button
-                            onClick={() => setNewMembersSubTab("rejected")}
+                            onClick={() => setApplicationsSubTab("rejected")}
                             className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer border-b-2 bg-transparent border-none ${
-                                newMembersSubTab === "rejected"
+                                applicationsSubTab === "rejected"
                                     ? "border-gold-primary text-gold-primary"
                                     : "border-transparent text-[#888888] hover:text-white"
                             }`}
@@ -369,7 +550,7 @@ export default function AdminDashboard() {
                     ) : activeList.length === 0 ? (
                         <div className="py-20 text-center">
                             <span className="text-xs text-[#666666] uppercase tracking-widest block font-black">
-                                No {newMembersSubTab} applications found
+                                No {applicationsSubTab} applications found
                             </span>
                         </div>
                     ) : (
@@ -407,7 +588,7 @@ export default function AdminDashboard() {
                                                 </span>
                                             </td>
                                             <td className="py-3.5 pr-4 text-right">
-                                                {newMembersSubTab === "pending" ? (
+                                                {applicationsSubTab === "pending" ? (
                                                     <>
                                                         <button 
                                                             onClick={() => handleUpdateStatus(app._id, "Approved")}
@@ -422,7 +603,7 @@ export default function AdminDashboard() {
                                                             Reject
                                                         </button>
                                                     </>
-                                                ) : newMembersSubTab === "accepted" ? (
+                                                ) : applicationsSubTab === "accepted" ? (
                                                     <>
                                                         <button 
                                                             onClick={() => handleUpdateStatus(app._id, "Rejected")}
@@ -471,215 +652,19 @@ export default function AdminDashboard() {
 
 
 
-    // Sidebar navigation list items helper
-    const navigationItems = [
-        {
-            id: "dashboard" as AdminTab,
-            label: "Dashboard",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="9" />
-                    <rect x="14" y="3" width="7" height="5" />
-                    <rect x="14" y="12" width="7" height="9" />
-                    <rect x="3" y="16" width="7" height="5" />
-                </svg>
-            ),
-        },
-        {
-            id: "team" as AdminTab,
-            label: "Team management",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-            ),
-        },
-        {
-            id: "projects" as AdminTab,
-            label: "Projects",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-            ),
-        },
-
-        {
-            id: "new_members" as AdminTab,
-            label: "new members",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <line x1="19" y1="8" x2="19" y2="14" />
-                    <line x1="16" y1="11" x2="22" y2="11" />
-                </svg>
-            ),
-        },
-
-    ];
-
     return (
-        <div className="min-h-screen bg-[#050505] flex text-white relative">
+        <div className="min-h-screen bg-[#050505] flex text-white relative admin-workspace">
             {/* Ambient Background Glows */}
             <div className="absolute top-[5%] right-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
             <div className="absolute bottom-[5%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
 
-            {/* ==========================================
-               SIDEBAR - DESKTOP VIEW
-               ========================================== */}
-            <aside className="hidden lg:flex flex-col justify-between w-64 bg-white/[0.02] border-r border-white/5 p-6 z-10 select-none flex-shrink-0">
-                <div className="space-y-8">
-                    {/* Brand Logo */}
-                    <div className="flex items-center gap-3">
-                        <img
-                            src="/assets/HiveMind-Logo.png"
-                            alt="HiveMind Logo"
-                            className="h-10 w-auto filter drop-shadow-[0_0_8px_rgba(255,193,7,0.3)]"
-                        />
-                        <div>
-                            <h2 className="text-sm font-black uppercase tracking-widest text-gold-sweep">
-                                HiveMind Admin
-                            </h2>
-                            <span className="text-[8px] text-[#666666] tracking-widest uppercase block">
-                                Control Center
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Navigation Menu */}
-                    <nav className="space-y-1.5">
-                        {navigationItems.map((item) => {
-                            const isActive = activeTab === item.id;
-                            return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => {
-                                        if (item.id === "team") {
-                                            navigate("/admin/team");
-                                        } else if (item.id === "projects") {
-                                            navigate("/admin/projects");
-                                        } else {
-                                            setActiveTab(item.id);
-                                        }
-                                    }}
-                                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-                                        isActive
-                                            ? "bg-gold-primary/10 border border-gold-primary/20 text-gold-primary [text-shadow:0_0_10px_rgba(255,193,7,0.25)] shadow-[0_4px_15px_rgba(255,193,7,0.05)]"
-                                            : "bg-transparent border border-transparent text-[#888888] hover:text-white hover:bg-white/[0.01]"
-                                    }`}
-                                >
-                                    {item.icon}
-                                    {item.label}
-                                </button>
-                            );
-                        })}
-                    </nav>
-                </div>
-
-                {/* Footer Section */}
-                <div className="space-y-4 border-t border-white/5 pt-4">
-                    <div className="flex items-center gap-3 px-2">
-                        <div className="w-8 h-8 rounded-full bg-gold-primary/10 flex items-center justify-center font-bold text-xs text-gold-primary">
-                            {admin?.name?.substring(0, 2).toUpperCase() || "AD"}
-                        </div>
-                        <div className="truncate">
-                            <span className="text-xs font-bold block text-white truncate">{admin?.name}</span>
-                            <span className="text-[9px] text-[#666666] uppercase block font-semibold">{admin?.role}</span>
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center justify-center gap-2 bg-transparent border border-white/10 hover:border-red-500/40 text-xs text-[#AAAAAA] hover:text-red-400 py-3 rounded-xl cursor-pointer transition-all duration-300 font-bold tracking-widest uppercase"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                        Sign Out
-                    </button>
-                </div>
-            </aside>
-
-            {/* ==========================================
-               SIDEBAR - MOBILE SLIDEOUT DRAWER
-               ========================================== */}
-            {isMobileSidebarOpen && (
-                <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity" onClick={() => setIsMobileSidebarOpen(false)}>
-                    <aside className="w-64 h-full bg-[#050505] border-r border-white/5 p-6 flex flex-col justify-between z-50 animate-text-entrance" onClick={(e) => e.stopPropagation()}>
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-3">
-                                    <img
-                                        src="/assets/HiveMind-Logo.png"
-                                        alt="HiveMind Logo"
-                                        className="h-8 w-auto filter drop-shadow-[0_0_8px_rgba(255,193,7,0.3)]"
-                                    />
-                                    <h2 className="text-xs font-black uppercase tracking-widest text-gold-sweep">
-                                        HiveMind Admin
-                                    </h2>
-                                </div>
-                                <button onClick={() => setIsMobileSidebarOpen(false)} className="text-[#888888] hover:text-white cursor-pointer focus:outline-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <nav className="space-y-1.5">
-                                {navigationItems.map((item) => {
-                                    const isActive = activeTab === item.id;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => {
-                                                if (item.id === "team") {
-                                                    navigate("/admin/team");
-                                                } else if (item.id === "projects") {
-                                                    navigate("/admin/projects");
-                                                } else {
-                                                    setActiveTab(item.id);
-                                                }
-                                                setIsMobileSidebarOpen(false);
-                                            }}
-                                            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-                                                isActive
-                                                    ? "bg-gold-primary/10 border border-gold-primary/20 text-gold-primary [text-shadow:0_0_10px_rgba(255,193,7,0.25)]"
-                                                    : "bg-transparent border border-transparent text-[#888888] hover:text-white hover:bg-white/[0.01]"
-                                            }`}
-                                        >
-                                            {item.icon}
-                                            {item.label}
-                                        </button>
-                                    );
-                                })}
-                            </nav>
-                        </div>
-
-                        <div className="space-y-4 border-t border-white/5 pt-4">
-                            <div className="flex items-center gap-3 px-2">
-                                <div className="w-8 h-8 rounded-full bg-gold-primary/10 flex items-center justify-center font-bold text-xs text-gold-primary">
-                                    {admin?.name?.substring(0, 2).toUpperCase() || "AD"}
-                                </div>
-                                <div className="truncate">
-                                    <span className="text-xs font-bold block text-white truncate">{admin?.name}</span>
-                                    <span className="text-[9px] text-[#666666] uppercase block font-semibold">{admin?.role}</span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="w-full flex items-center justify-center gap-2 bg-transparent border border-white/10 hover:border-red-500/40 text-xs text-[#AAAAAA] hover:text-red-400 py-3 rounded-xl cursor-pointer transition-all duration-300 font-bold tracking-widest uppercase"
-                            >
-                                Sign Out
-                            </button>
-                        </div>
-                    </aside>
-                </div>
-            )}
+            {/* SHARED SIDEBAR COMPONENT */}
+            <AdminSidebar
+                activeTab="dashboard"
+                isMobileSidebarOpen={isMobileSidebarOpen}
+                setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+                admin={admin}
+            />
 
             {/* ==========================================
                MAIN CONTAINER CONTENT AREA
@@ -699,7 +684,7 @@ export default function AdminDashboard() {
                             </svg>
                         </button>
                         <h1 className="text-sm font-black uppercase tracking-widest text-gold-sweep">
-                            HiveMind Panel
+                            Admin Panel
                         </h1>
                     </div>
 
@@ -710,17 +695,22 @@ export default function AdminDashboard() {
 
                 {/* Dashboard Tab Content Render */}
                 <main className="flex-1 p-6 sm:p-10 md:p-12">
-                    {activeTab === "dashboard" && renderDashboardView()}
-                    {activeTab === "team" && renderTeamView()}
-                    {activeTab === "projects" && renderProjectsView()}
-
-                    {activeTab === "new_members" && renderNewMembersView()}
+                    {loading ? (
+                        <AdminLoader isComponent={true} />
+                    ) : (
+                        <>
+                            {activeTab === "dashboard" && renderDashboardView()}
+                            {activeTab === "team" && renderTeamView()}
+                            {activeTab === "projects" && renderProjectsView()}
+                            {activeTab === "applications" && renderApplicationsView()}
+                        </>
+                    )}
                 </main>
             </div>
             {/* Custom View Applicant Modal */}
             {selectedApp && (
                 <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-[10000] p-4 overflow-y-auto">
-                    <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-text-entrance text-left">
+                    <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-fade-in text-left">
                         <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
                             <div>
                                 <h3 className="text-base sm:text-lg font-black uppercase tracking-wider text-white">
@@ -834,7 +824,7 @@ export default function AdminDashboard() {
             {/* Custom Delete Confirmation Modal */}
             {appToDelete && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
-                    <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-text-entrance">
+                    <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-fade-in">
                         <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="3 6 5 6 21 6" />

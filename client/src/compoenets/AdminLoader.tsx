@@ -1,6 +1,10 @@
-export default function AdminLoader() {
+interface AdminLoaderProps {
+    isComponent?: boolean;
+}
+
+export default function AdminLoader({ isComponent = false }: AdminLoaderProps) {
     return (
-        <div className="fixed inset-0 bg-[#050505]/90 backdrop-blur-md flex flex-col items-center justify-center z-[99999]">
+        <div className={isComponent ? "w-full min-h-[400px] flex flex-col items-center justify-center" : "fixed inset-0 bg-[#050505]/90 backdrop-blur-md flex flex-col items-center justify-center z-[99999]"}>
             <style>{`
                 .loader {
                     width: 50px;

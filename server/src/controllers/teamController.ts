@@ -19,11 +19,11 @@ export const getTeamMembers = async (req: Request, res: Response) => {
 // POST /api/v1/team
 export const createTeamMember = async (req: Request, res: Response) => {
     try {
-        const { fullname, email, pic, department, section, year, Linkedin, github, batch } = req.body;
+        const { fullname, registerNumber, email, pic, department, section, year, Linkedin, github, batch } = req.body;
 
         // 1. Check required fields
-        if (!fullname || !email || !department || !section || !year || !batch) {
-            return res.status(400).json({ success: false, message: "Full name, email, department, section, year, and batch are required." });
+        if (!fullname || !registerNumber || !email || !department || !section || !year || !batch) {
+            return res.status(400).json({ success: false, message: "Full name, register number, email, department, section, year, and batch are required." });
         }
 
         // 2. Validate length
@@ -63,6 +63,7 @@ export const createTeamMember = async (req: Request, res: Response) => {
 
         const newMember = new Team({
             fullname,
+            registerNumber,
             email,
             pic: pic || "",
             department,
@@ -90,7 +91,7 @@ export const createTeamMember = async (req: Request, res: Response) => {
 export const updateTeamMember = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { fullname, email, pic, department, section, year, Linkedin, github, batch } = req.body;
+        const { fullname, registerNumber, email, pic, department, section, year, Linkedin, github, batch } = req.body;
 
         const member = await Team.findById(id);
         if (!member) {
@@ -103,6 +104,11 @@ export const updateTeamMember = async (req: Request, res: Response) => {
                 return res.status(400).json({ success: false, message: "Full name must be at least 3 characters." });
             }
             member.fullname = fullname;
+        }
+
+        if (registerNumber !== undefined) {
+            if (!registerNumber) return res.status(400).json({ success: false, message: "Register number is required." });
+            member.registerNumber = registerNumber;
         }
 
         if (email !== undefined) {

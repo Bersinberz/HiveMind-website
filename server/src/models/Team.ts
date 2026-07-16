@@ -9,6 +9,11 @@ const teamSchema = new Schema<ITeam, TeamModel>(
             minlength: [3, "Full name must be at least 3 characters"],
             trim: true,
         },
+        registerNumber: {
+            type: String,
+            required: [true, "Register number is required"],
+            trim: true,
+        },
         email: {
             type: String,
             required: [true, "Email is required"],

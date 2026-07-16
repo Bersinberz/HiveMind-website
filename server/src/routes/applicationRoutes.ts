@@ -4,7 +4,7 @@ import {
     getApplications,
     updateApplicationStatus,
     deleteApplication
-} from "../controllers/newMemberController";
+} from "../controllers/applicationController";
 import { protectAdmin } from "../middleware/authMiddleware";
 
 const router = Router();

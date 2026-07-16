@@ -16,9 +16,12 @@ const projectSchema = new Schema<IProject, ProjectModel>(
             trim: true,
         },
         domain: {
-            type: String,
+            type: [String],
             required: [true, "Project domain is required"],
-            trim: true,
+            validate: {
+                validator: (v: string[]) => Array.isArray(v) && v.length > 0,
+                message: "Project domain must contain at least one domain",
+            },
         },
         techStack: {
             type: [String],

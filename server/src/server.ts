@@ -6,7 +6,10 @@ import { connectDB } from "./config/db";
 import authRoutes from "./routes/authRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import projectRoutes from "./routes/projectRoutes";
-import newMemberRoutes from "./routes/newMemberRoutes";
+import applicationRoutes from "./routes/applicationRoutes";
+import communitySettingsRoutes from "./routes/communitySettingsRoutes";
+import masterDataRoutes from "./routes/masterDataRoutes";
+import telemetryRoutes from "./routes/telemetryRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -33,7 +36,10 @@ app.use(cookieParser());
 app.use("/api/v1/admin", authRoutes);
 app.use("/api/v1/team", teamRoutes);
 app.use("/api/v1/projects", projectRoutes);
-app.use("/api/v1/new-members", newMemberRoutes);
+app.use("/api/v1/applications", applicationRoutes);
+app.use("/api/v1/community-settings", communitySettingsRoutes);
+app.use("/api/v1/master-data", masterDataRoutes);
+app.use("/api/v1/telemetry", telemetryRoutes);
 
 // Health Check Route
 app.get("/health", (req, res) => {

@@ -9,6 +9,12 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = require("./config/db");
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
+const teamRoutes_1 = __importDefault(require("./routes/teamRoutes"));
+const projectRoutes_1 = __importDefault(require("./routes/projectRoutes"));
+const applicationRoutes_1 = __importDefault(require("./routes/applicationRoutes"));
+const communitySettingsRoutes_1 = __importDefault(require("./routes/communitySettingsRoutes"));
+const masterDataRoutes_1 = __importDefault(require("./routes/masterDataRoutes"));
+const telemetryRoutes_1 = __importDefault(require("./routes/telemetryRoutes"));
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -25,6 +31,12 @@ app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
 // API Routes
 app.use("/api/v1/admin", authRoutes_1.default);
+app.use("/api/v1/team", teamRoutes_1.default);
+app.use("/api/v1/projects", projectRoutes_1.default);
+app.use("/api/v1/applications", applicationRoutes_1.default);
+app.use("/api/v1/community-settings", communitySettingsRoutes_1.default);
+app.use("/api/v1/master-data", masterDataRoutes_1.default);
+app.use("/api/v1/telemetry", telemetryRoutes_1.default);
 // Health Check Route
 app.get("/health", (req, res) => {
     res.status(200).json({ status: "OK", service: "HiveMind Admin Authentication Server" });

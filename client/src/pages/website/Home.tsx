@@ -2,23 +2,35 @@ import { type FormEvent, useState, useEffect } from "react";
 import Navbar from "../../compoenets/Navbar";
 import HeroSection from "../../compoenets/HeroSection";
 import ProjectServices, { type Project } from "../../services/admin/ProjectServices";
+import axiosInstance from "../../services/axiosInstance";
+import TelemetryServices from "../../services/admin/TelemetryServices";
 
 // ==========================================
 // ABOUT SECTION COMPONENT
 // ==========================================
-function AboutSection() {
+interface AboutSectionProps {
+    settings?: {
+        communityName: string;
+        aboutCommunity: string;
+    } | null;
+}
+
+function AboutSection({ settings }: AboutSectionProps) {
+    const title = settings?.communityName ? `About ${settings.communityName}` : "About HiveMind";
+    const description = settings?.aboutCommunity || "HiveMind is a student-driven Artificial Intelligence community at Sathyabama Institute of Science and Technology, operating from the AI Supercomputing Laboratory in the SCAS Block. We bring together passionate students who share a common vision of exploring, building, and advancing AI through hands-on learning, research, and innovation. Our members work on cutting-edge technologies such as Generative AI, Large Language Models (LLMs), Retrieval-Augmented Generation (RAG), Transformers, Computer Vision, Deep Learning, AI Agents, MLOps, and cloud-based AI solutions, transforming ideas into impactful real-world applications. Guided by experienced faculty mentors, HiveMind fosters a collaborative environment where curiosity meets engineering, empowering students to contribute to open-source projects, participate in hackathons, conduct research, and develop intelligent systems that shape the future of technology.";
+
     return (
         <section className="relative flex flex-col items-center bg-[#050505] text-white py-16 md:py-24 px-6 md:px-[10%] border-b border-white/5 z-10" id="about">
             <span className="text-xs font-bold text-gold-primary uppercase tracking-[0.3em] mb-3 [text-shadow:0_0_10px_rgba(255,193,7,0.3)]">
                 Overview
             </span>
             <h2 className="text-3xl md:text-5xl font-extrabold uppercase tracking-wide text-center mb-8 bg-gradient-to-r from-white via-white to-gold-light bg-clip-text text-transparent">
-                About HiveMind
+                {title}
             </h2>
 
             <div className="w-full max-w-4xl mx-auto">
                 <p className="text-base md:text-lg leading-[1.8] text-[#CCCCCC] text-justify">
-                    HiveMind is a student-driven Artificial Intelligence community at Sathyabama Institute of Science and Technology, operating from the AI Supercomputing Laboratory in the SCAS Block. We bring together passionate students who share a common vision of exploring, building, and advancing AI through hands-on learning, research, and innovation. Our members work on cutting-edge technologies such as Generative AI, Large Language Models (LLMs), Retrieval-Augmented Generation (RAG), Transformers, Computer Vision, Deep Learning, AI Agents, MLOps, and cloud-based AI solutions, transforming ideas into impactful real-world applications. Guided by experienced faculty mentors, HiveMind fosters a collaborative environment where curiosity meets engineering, empowering students to contribute to open-source projects, participate in hackathons, conduct research, and develop intelligent systems that shape the future of technology.
+                    {description}
                 </p>
             </div>
         </section>
@@ -182,29 +194,45 @@ function DomainsSection() {
 // ==========================================
 // TESTIMONIALS SECTION COMPONENT
 // ==========================================
-function TestimonialsSection() {
-    const testimonials = [
+interface TestimonialsSectionProps {
+    settings?: {
+        communityVoices: Array<{
+            name: string;
+            whoIsHe: string;
+            description: string;
+            pic?: string;
+        }>;
+    } | null;
+}
+
+function TestimonialsSection({ settings }: TestimonialsSectionProps) {
+    const defaultTestimonials = [
         {
-            text: "Being part of HiveMind changed my perspective on engineering. Working in the AI Supercomputing Lab gave me access to state-of-the-art GPU nodes and collaboration that you can't find in a standard classroom.",
+            description: "Being part of HiveMind changed my perspective on engineering. Working in the AI Supercomputing Lab gave me access to state-of-the-art GPU nodes and collaboration that you can't find in a standard classroom.",
             name: "Rahul S.",
-            role: "AI Research Lead",
-            initials: "RS",
+            whoIsHe: "AI Research Lead",
+            pic: "",
         },
         {
-            text: "HiveMind represents the peak of student innovation at Sathyabama. The projects developed here show that with the right mentorship and computing power, students can tackle complex, real-world problems.",
+            description: "HiveMind represents the peak of student innovation at Sathyabama. The projects developed here show that with the right mentorship and computing power, students can tackle complex, real-world problems.",
             name: "Dr. Anitha P.",
-            role: "Faculty Mentor",
-            initials: "AP",
+            whoIsHe: "Faculty Mentor",
+            pic: "",
         },
         {
-            text: "The hands-on experience in MLOps pipelines and large language model architectures I gained at HiveMind was the primary reason I landed my job as an ML Engineer right after graduation.",
+            description: "The hands-on experience in MLOps pipelines and large language model architectures I gained at HiveMind was the primary reason I landed my job as an ML Engineer right after graduation.",
             name: "Priya K.",
-            role: "Alumni / ML Engineer",
-            initials: "PK",
+            whoIsHe: "Alumni / ML Engineer",
+            pic: "",
         },
     ];
 
-    const tripledTestimonials = [...testimonials, ...testimonials, ...testimonials];
+    const sourceList = settings?.communityVoices && settings.communityVoices.length > 0 
+        ? settings.communityVoices 
+        : defaultTestimonials;
+
+    // Triple list for infinite loop marquee
+    const tripledTestimonials = [...sourceList, ...sourceList, ...sourceList];
 
     return (
         <section className="relative flex flex-col items-center bg-[#050505] text-white py-16 md:py-24 px-6 md:px-[10%] border-b border-white/5 z-10 overflow-hidden" id="testimonials">
@@ -218,24 +246,37 @@ function TestimonialsSection() {
             {/* Infinite Marquee Wrapper */}
             <div className="relative w-full max-w-7xl overflow-hidden py-4 mask-marquee">
                 <div className="flex animate-marquee gap-8 hover:[animation-play-state:paused] cursor-pointer">
-                    {tripledTestimonials.map((t, index) => (
-                        <div
-                            key={index}
-                            className="relative w-[320px] md:w-[420px] flex-shrink-0 bg-white/[0.02] border border-white/5 rounded-2xl p-8 flex flex-col justify-between transition-all duration-300 hover:border-gold-primary/20 hover:bg-white/[0.04]"
-                        >
-                            <div className="absolute top-4 right-6 text-4xl text-gold-primary/10 font-serif select-none pointer-events-none">“</div>
-                            <p className="relative z-10 text-xs md:text-sm text-[#DDDDDD] leading-relaxed italic mb-6">{t.text}</p>
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black font-bold text-xs flex items-center justify-center shadow-[0_0_8px_rgba(255,193,7,0.2)]">
-                                    {t.initials}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-xs md:text-sm font-bold text-white">{t.name}</span>
-                                    <span className="text-[10px] text-[#888888] mt-0.5">{t.role}</span>
+                    {tripledTestimonials.map((t, index) => {
+                        const initials = t.name
+                            ? t.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
+                            : "U";
+                        return (
+                            <div
+                                key={index}
+                                className="relative w-[320px] md:w-[420px] flex-shrink-0 bg-white/[0.02] border border-white/5 rounded-2xl p-8 flex flex-col justify-between transition-all duration-300 hover:border-gold-primary/20 hover:bg-white/[0.04]"
+                            >
+                                <div className="absolute top-4 right-6 text-4xl text-gold-primary/10 font-serif select-none pointer-events-none">“</div>
+                                <p className="relative z-10 text-xs md:text-sm text-[#DDDDDD] leading-relaxed italic mb-6">"{t.description}"</p>
+                                <div className="flex items-center gap-4">
+                                    {t.pic ? (
+                                        <img 
+                                            src={t.pic} 
+                                            alt={t.name} 
+                                            className="w-10 h-10 rounded-full object-cover border border-white/10 shadow-[0_0_8px_rgba(255,193,7,0.2)]"
+                                        />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black font-bold text-xs flex items-center justify-center shadow-[0_0_8px_rgba(255,193,7,0.2)]">
+                                            {initials}
+                                        </div>
+                                    )}
+                                    <div className="flex flex-col">
+                                        <span className="text-xs md:text-sm font-bold text-white">{t.name}</span>
+                                        <span className="text-[10px] text-[#888888] mt-0.5">{t.whoIsHe}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </section>
@@ -245,7 +286,13 @@ function TestimonialsSection() {
 // ==========================================
 // JOIN SECTION COMPONENT
 // ==========================================
-function JoinSection() {
+interface JoinSectionProps {
+    settings?: {
+        acceptingApplications: boolean;
+    } | null;
+}
+
+function JoinSection({ settings }: JoinSectionProps) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [domain, setDomain] = useState("");
@@ -270,7 +317,22 @@ function JoinSection() {
 
             <div className="relative w-full max-w-3xl bg-gradient-to-br from-white/[0.02] to-gold-primary/[0.01] border border-white/5 rounded-3xl p-6 sm:p-16 text-center shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-[150%] before:h-[150%] before:bg-[radial-gradient(circle,rgba(255,193,7,0.04)_0%,transparent_60%)] before:pointer-events-none before:z-[1]">
                 <div className="relative z-10 max-w-xl mx-auto">
-                    {submitted ? (
+                    {settings && settings.acceptingApplications === false ? (
+                        <div className="py-8">
+                            <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mx-auto mb-6 shadow-[0_0_20px_rgba(239,68,68,0.15)] animate-[pulseGlowBg_3s_infinite_alternate]">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold mb-4 text-white uppercase tracking-wider">
+                                Recruitment Closed
+                            </h3>
+                            <p className="text-xs text-[#A0A0A0] leading-relaxed max-w-md mx-auto uppercase tracking-wider font-semibold">
+                                HiveMind is not accepting recruitment applications at the moment. Please check back later!
+                            </p>
+                        </div>
+                    ) : submitted ? (
                         <div className="py-8">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -457,7 +519,7 @@ function ProjectsSection() {
                             )}
                             {/* Domain label */}
                             <span className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 text-gold-primary text-[9px] font-black tracking-widest px-3 py-1.5 rounded-full uppercase">
-                                {project.domain}
+                                {Array.isArray(project.domain) ? project.domain.join(" • ") : project.domain}
                             </span>
                         </div>
 
@@ -533,17 +595,35 @@ function ProjectsSection() {
 // HOME PAGE CONTAINER
 // ==========================================
 export default function Home() {
+    const [settings, setSettings] = useState<any>(null);
+
+    useEffect(() => {
+        // Record visitor telemetry
+        TelemetryServices.recordVisit("/")
+            .catch(err => console.error("Failed to log visit:", err));
+
+        axiosInstance.get("/v1/community-settings")
+            .then(res => {
+                if (res.data && res.data.success) {
+                    setSettings(res.data.settings);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load community settings:", err);
+            });
+    }, []);
+
     return (
         <>
             <Navbar />
             <main>
                 <HeroSection />
-                <AboutSection />
+                <AboutSection settings={settings} />
                 <MissionSection />
                 <DomainsSection />
                 <ProjectsSection />
-                <TestimonialsSection />
-                <JoinSection />
+                <TestimonialsSection settings={settings} />
+                <JoinSection settings={settings} />
             </main>
         </>
     );

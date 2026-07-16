@@ -2,6 +2,7 @@ import { Document, Model } from "mongoose";
 
 export interface ITeam extends Document {
     fullname: string;
+    registerNumber: string;
     email: string;
     pic?: string;
     department: string;
