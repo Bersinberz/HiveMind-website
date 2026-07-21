@@ -5,12 +5,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectDB = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
+const dns_1 = __importDefault(require("dns"));
 const connectDB = async () => {
     try {
         const connString = process.env.MONGODB_URI;
         if (!connString) {
             throw new Error("MONGODB_URI is not defined in environment variables");
         }
+        // Configure custom DNS servers to handle cases where the system/ISP DNS fails to resolve MongoDB Atlas SRV records
+        dns_1.default.setServers(["8.8.8.8", "1.1.1.1"]);
         const conn = await mongoose_1.default.connect(connString);
         console.log(`MongoDB Connected: ${conn.connection.host}`);
     }

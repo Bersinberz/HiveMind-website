@@ -18,9 +18,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
                     setCommunityName(res.data.settings.communityName);
                 }
             })
-            .catch(err => {
-                console.error("Failed to load community settings in splash screen:", err);
-            });
+            .catch(() => {});
     }, []);
 
     // ==========================================

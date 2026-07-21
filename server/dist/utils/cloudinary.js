@@ -24,7 +24,6 @@ const getPublicIdFromUrl = (url) => {
         return decodeURIComponent(publicIdWithPath);
     }
     catch (e) {
-        console.error("Error parsing Cloudinary URL:", e);
         return null;
     }
 };
@@ -54,16 +53,13 @@ const deleteFromCloudinary = async (url) => {
         });
         const data = await response.json();
         if (data && data.result === "ok") {
-            console.log(`Successfully deleted image from Cloudinary: ${publicId}`);
             return true;
         }
         else {
-            console.warn(`Failed to delete image from Cloudinary: ${publicId}. Response:`, data);
             return false;
         }
     }
     catch (error) {
-        console.error(`Error deleting image from Cloudinary for publicId ${publicId}:`, error.message || error);
         return false;
     }
 };

@@ -71,14 +71,8 @@ const HexagonCard = ({ member }: { member: TeamMember }) => {
                         <span className="text-base sm:text-lg font-extrabold text-gold-sweep uppercase tracking-wider block mb-1">
                             {member.fullname}
                         </span>
-                        <span className="text-xs sm:text-sm text-[#888888] uppercase tracking-widest block mb-2">
+                        <span className="text-xs sm:text-sm text-[#888888] uppercase tracking-widest block mb-6">
                             {member.department}
-                        </span>
-                        <span className="text-[10px] sm:text-xs text-[#666666] uppercase tracking-widest block mb-1">
-                            {member.year} Year
-                        </span>
-                        <span className="text-[9px] text-[#555555] uppercase tracking-widest block mb-6">
-                            Batch {member.batch}
                         </span>
 
                         {/* Social links with logos */}
@@ -120,14 +114,7 @@ const HexagonCard = ({ member }: { member: TeamMember }) => {
 };
 
 
-const cardContainerVariants: any = {
-    hidden: {},
-    visible: {
-        transition: {
-            staggerChildren: 0.05
-        }
-    }
-};
+
 
 const cardVariants: any = {
     hidden: { opacity: 0, y: 30, scale: 0.95 },
@@ -153,21 +140,32 @@ export default function Team({ showSplash }: { showSplash?: boolean }) {
                     setTeamMembers(res.members);
                 }
             })
-            .catch(err => {
-                console.error("Error fetching team members:", err);
-            })
+            .catch(() => { })
             .finally(() => {
                 setLoading(false);
             });
     }, []);
 
+    useEffect(() => {
+        document.body.style.backgroundImage = "url('/assets/join_bg.png')";
+        document.body.style.backgroundAttachment = "fixed";
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundPosition = "center";
+        document.body.style.backgroundRepeat = "no-repeat";
+
+        return () => {
+            document.body.style.backgroundImage = "";
+            document.body.style.backgroundAttachment = "";
+            document.body.style.backgroundSize = "";
+            document.body.style.backgroundPosition = "";
+            document.body.style.backgroundRepeat = "";
+        };
+    }, []);
+
     return (
-        <div
-            className="min-h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden bg-cover bg-center bg-no-repeat bg-fixed"
-            style={{ backgroundImage: "url('/assets/join_bg.png')" }}
-        >
+        <div className="min-h-screen bg-transparent text-white flex flex-col relative overflow-hidden">
             {/* Dark overlay backdrop to keep content readable */}
-            <div className="absolute inset-0 bg-[#050505]/80 z-0 pointer-events-none" />
+            <div className="fixed inset-0 bg-[#050505]/45 z-0 pointer-events-none" />
 
             {/* Ambient Background Glows */}
             <div className="absolute top-[10%] left-[-10%] w-[50%] h-[50%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
@@ -180,7 +178,13 @@ export default function Team({ showSplash }: { showSplash?: boolean }) {
                     {/* --- UNIFIED HERO SECTION --- */}
                     <div className="w-full flex flex-col items-center justify-center pt-4 pb-16 md:pb-24 border-b border-white/5 relative">
                         {/* Upper Hero Intro */}
-                        <div className="flex flex-col items-center justify-center text-center px-4 mb-16 md:mb-24">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: false, amount: 0.2 }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="flex flex-col items-center justify-center text-center px-4 mb-16 md:mb-24"
+                        >
                             <span className="text-xs font-bold text-gold-primary uppercase tracking-[0.3em] mb-3 [text-shadow:0_0_10px_rgba(255,193,7,0.3)]">
                                 THE MINDS BEHIND THE HIVE
                             </span>
@@ -190,27 +194,45 @@ export default function Team({ showSplash }: { showSplash?: boolean }) {
                             <p className="text-sm md:text-base text-[#888888] text-center max-w-xl leading-relaxed uppercase tracking-wider font-semibold">
                                 A collective of curious minds building, learning, and innovating together
                             </p>
-                        </div>
+                        </motion.div>
 
                         {/* Lower Hero Content (Our Collective editorial grid) */}
                         <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 px-4 items-start text-left">
                             {/* Left Side: Label & Heading */}
-                            <div className="md:col-span-5 space-y-4">
+                            <motion.div
+                                initial={{ opacity: 0, x: -30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: false, amount: 0.2 }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className="md:col-span-5 space-y-4"
+                            >
                                 <span className="text-[10px] sm:text-xs font-bold text-gold-primary uppercase tracking-[0.25em] [text-shadow:0_0_10px_rgba(255,193,7,0.2)] block">
                                     OUR COLLECTIVE
                                 </span>
                                 <h3 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-white leading-tight bg-gradient-to-r from-white via-white to-gold-light bg-clip-text text-transparent">
                                     Built by People.<br />Driven by Curiosity.
                                 </h3>
-                            </div>
+                            </motion.div>
 
                             {/* Visual Connector Line */}
                             <div className="hidden md:flex md:col-span-1 justify-center h-full min-h-[220px]">
-                                <div className="w-[1px] h-full min-h-[220px] bg-gradient-to-b from-gold-primary/40 via-gold-primary/10 to-transparent" />
+                                <motion.div
+                                    initial={{ scaleY: 0 }}
+                                    whileInView={{ scaleY: 1 }}
+                                    viewport={{ once: false, amount: 0.2 }}
+                                    transition={{ duration: 0.8, delay: 0.2, ease: "easeInOut" }}
+                                    className="w-[1px] h-full min-h-[220px] bg-gradient-to-b from-gold-primary/40 via-gold-primary/10 to-transparent origin-top"
+                                />
                             </div>
 
                             {/* Right Side: Paragraphs */}
-                            <div className="md:col-span-6 space-y-6 text-sm sm:text-base leading-relaxed text-[#888888] font-medium">
+                            <motion.div
+                                initial={{ opacity: 0, x: 30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: false, amount: 0.2 }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className="md:col-span-6 space-y-6 text-sm sm:text-base leading-relaxed text-[#888888] font-medium"
+                            >
                                 <p>
                                     HiveMind brings together individuals with diverse skills, ideas, and perspectives, united by a shared passion for technology, research, and innovation. We believe that meaningful ideas emerge when curious minds come together — sharing knowledge, challenging perspectives, and learning from one another.
                                 </p>
@@ -220,7 +242,7 @@ export default function Team({ showSplash }: { showSplash?: boolean }) {
                                 <p className="text-white/70">
                                     At HiveMind, growth is not an individual journey. Every member brings their own strengths and experiences while learning alongside others. Together, we create an environment where ideas evolve, skills grow, and people build things that matter.
                                 </p>
-                            </div>
+                            </motion.div>
                         </div>
                     </div>
                     {/* --- END OF HERO SECTION --- */}
@@ -229,20 +251,20 @@ export default function Team({ showSplash }: { showSplash?: boolean }) {
                     <motion.div
                         initial={{ opacity: 0, y: 25 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, amount: 0.3 }}
+                        viewport={{ once: false, amount: 0.3 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                         className="flex flex-col items-center justify-center text-center py-20 w-full"
                     >
                         <h4 className="text-xs sm:text-sm font-black uppercase tracking-[0.3em] text-white select-none">
                             TOGETHER, WE ARE <span className="text-gold-primary [text-shadow:0_0_8px_rgba(255,193,7,0.3)]">HIVEMIND.</span>
                         </h4>
-                        
+
                         {/* Downward indicator line */}
                         <div className="w-[1px] h-20 relative mt-6 overflow-hidden">
-                            <motion.div 
+                            <motion.div
                                 initial={{ scaleY: 0 }}
                                 whileInView={{ scaleY: 1 }}
-                                viewport={{ once: true }}
+                                viewport={{ once: false }}
                                 transition={{ duration: 0.8, delay: 0.3, ease: "easeInOut" }}
                                 className="absolute inset-0 bg-gradient-to-b from-gold-primary via-gold-primary/50 to-transparent origin-top"
                             />
@@ -270,19 +292,19 @@ export default function Team({ showSplash }: { showSplash?: boolean }) {
                             <span className="text-xs text-[#666666] uppercase tracking-widest block font-black">No team members found</span>
                         </div>
                     ) : (
-                        <motion.div
-                            variants={cardContainerVariants}
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true, amount: 0.02 }}
-                            className="flex flex-wrap justify-center gap-8 md:gap-12 max-w-7xl w-full"
-                        >
+                        <div className="flex flex-wrap justify-center gap-8 md:gap-12 max-w-7xl w-full">
                             {teamMembers.map(member => (
-                                <motion.div key={member._id} variants={cardVariants}>
+                                <motion.div
+                                    key={member._id}
+                                    variants={cardVariants}
+                                    initial="hidden"
+                                    whileInView="visible"
+                                    viewport={{ once: false, amount: 0.15 }}
+                                >
                                     <HexagonCard member={member} />
                                 </motion.div>
                             ))}
-                        </motion.div>
+                        </div>
                     )}
                 </section>
             </main>

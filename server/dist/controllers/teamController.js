@@ -11,11 +11,10 @@ const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
 // GET /api/v1/team
 const getTeamMembers = async (req, res) => {
     try {
-        const members = await Team_1.default.find({}).sort({ createdAt: -1 });
+        const members = await Team_1.default.find({}).sort({ createdAt: 1 });
         return res.status(200).json({ success: true, members });
     }
     catch (error) {
-        console.error("Fetch Team Members Error: ", error);
         return res.status(500).json({ success: false, message: "Internal server error fetching team members." });
     }
 };
@@ -77,7 +76,6 @@ const createTeamMember = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Create Team Member Error: ", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error creating team member." });
     }
 };
@@ -165,7 +163,7 @@ const updateTeamMember = async (req, res) => {
         }
         await member.save();
         if (oldPicUrl) {
-            (0, cloudinary_1.deleteFromCloudinary)(oldPicUrl).catch(err => console.error("Error deleting old profile photo from Cloudinary:", err));
+            (0, cloudinary_1.deleteFromCloudinary)(oldPicUrl).catch(err => { });
         }
         return res.status(200).json({
             success: true,
@@ -174,7 +172,6 @@ const updateTeamMember = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Update Team Member Error: ", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error updating team member." });
     }
 };
@@ -190,12 +187,11 @@ const deleteTeamMember = async (req, res) => {
         const picUrl = member.pic;
         await Team_1.default.findByIdAndDelete(id);
         if (picUrl) {
-            (0, cloudinary_1.deleteFromCloudinary)(picUrl).catch(err => console.error("Error deleting profile photo from Cloudinary:", err));
+            (0, cloudinary_1.deleteFromCloudinary)(picUrl).catch(err => { });
         }
         return res.status(200).json({ success: true, message: "Team member deleted successfully." });
     }
     catch (error) {
-        console.error("Delete Team Member Error: ", error);
         return res.status(500).json({ success: false, message: "Internal server error deleting team member." });
     }
 };

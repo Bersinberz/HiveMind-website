@@ -38,8 +38,6 @@ const technologySchema = new mongoose_1.Schema({
     timestamps: true,
 });
 // Indexes
-technologySchema.index({ name: 1 }, { unique: true });
-technologySchema.index({ slug: 1 }, { unique: true });
 technologySchema.index({ isActive: 1 });
 exports.Technology = (0, mongoose_1.model)("Technology", technologySchema);
 exports.default = exports.Technology;

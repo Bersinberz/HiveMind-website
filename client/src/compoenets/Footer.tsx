@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import CommunitySettingsServices, { type ICommunitySettings } from "../services/admin/CommunitySettingsServices";
 
@@ -20,7 +20,7 @@ function HoneycombPattern() {
 
 export default function Footer() {
     const location = useLocation();
-    const navigate = useNavigate();
+
     const [settings, setSettings] = useState<ICommunitySettings | null>(null);
 
     useEffect(() => {
@@ -30,32 +30,10 @@ export default function Footer() {
                     setSettings(res.settings);
                 }
             })
-            .catch(err => {
-                console.error("Failed to load community settings in footer:", err);
-            });
+            .catch(() => {});
     }, []);
 
-    const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, target: string) => {
-        if (target.startsWith("#")) {
-            e.preventDefault();
-            const elementId = target.substring(1);
 
-            if (location.pathname === "/") {
-                const el = document.getElementById(elementId);
-                if (el) {
-                    el.scrollIntoView({ behavior: "smooth" });
-                }
-            } else {
-                navigate("/");
-                setTimeout(() => {
-                    const el = document.getElementById(elementId);
-                    if (el) {
-                        el.scrollIntoView({ behavior: "smooth" });
-                    }
-                }, 150);
-            }
-        }
-    };
 
     // Database fallback values
     const primaryEmail = settings?.primaryEmail || "hivemind@sathyabama.ac.in";
@@ -175,18 +153,7 @@ export default function Footer() {
                                 </Link>
 
                             </li>
-                            <li>
-                                <a
-                                    href="#blog"
-                                    onClick={(e) => handleNavClick(e, "#blog")}
-                                    className="group flex items-center gap-1.5 text-xs text-[#888888] hover:text-gold-primary transition-all duration-300 transform hover:translate-x-1.5 font-semibold uppercase tracking-wider py-0.5"
-                                >
-                                    <span className="opacity-0 w-0 group-hover:opacity-100 group-hover:w-3 transition-all duration-300 text-gold-primary text-[10px] font-black">
-                                        ➔
-                                    </span>
-                                    Blog
-                                </a>
-                            </li>
+
                         </ul>
                     </motion.div>
 

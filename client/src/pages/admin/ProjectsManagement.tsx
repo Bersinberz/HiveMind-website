@@ -358,7 +358,6 @@ export default function ProjectsManagement() {
                 setTechList(techRes.data);
             }
         } catch (err) {
-            console.error("Error fetching master data inputs:", err);
         }
     };
 
@@ -370,7 +369,6 @@ export default function ProjectsManagement() {
                 setProjects(res.projects);
             }
         } catch (err) {
-            console.error("Error fetching projects:", err);
             setToast({ message: "Failed to fetch projects list.", type: "error" });
         } finally {
             setLoadingProjects(false);
@@ -427,7 +425,6 @@ export default function ProjectsManagement() {
         try {
             await axiosInstance.post("/v1/admin/cloudinary/delete", { url });
         } catch (err) {
-            console.error("Error deleting image from Cloudinary:", err);
         }
     };
 
@@ -552,7 +549,6 @@ export default function ProjectsManagement() {
                         setToast({ message: "Upload failed: No secure URL returned.", type: "error" });
                     }
                 } catch (err: any) {
-                    console.error("Cloudinary upload error:", err);
                     setToast({
                         message: err.response?.data?.error?.message || "Cloudinary upload failed.",
                         type: "error"
@@ -696,7 +692,6 @@ export default function ProjectsManagement() {
                 }
             }
         } catch (err: any) {
-            console.error("Modal Submit Error:", err);
             setToast({
                 message: err.response?.data?.message || "An error occurred while saving.",
                 type: "error"
@@ -714,7 +709,6 @@ export default function ProjectsManagement() {
                 setToast({ message: res.message || "Failed to delete project.", type: "error" });
             }
         } catch (err: any) {
-            console.error("Delete Error:", err);
             setToast({
                 message: err.response?.data?.message || "An error occurred while deleting.",
                 type: "error"

@@ -3,7 +3,6 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
-import { seedDomainsAndTechnologies } from "./utils/seedMasterData";
 import authRoutes from "./routes/authRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import projectRoutes from "./routes/projectRoutes";
@@ -20,10 +19,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to Database & Seed Master Data
-connectDB().then(() => {
-    seedDomainsAndTechnologies();
-});
+// Connect to Database
+connectDB();
 
 // Middlewares
 app.use(

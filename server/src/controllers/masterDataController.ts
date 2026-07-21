@@ -2,88 +2,14 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import MasterData from "../models/MasterData";
 
-const DEFAULT_MASTER_DATA = [
-    // Departments
-    { category: "department", value: "CSE" },
-    { category: "department", value: "IT" },
-    { category: "department", value: "ECE" },
-    { category: "department", value: "EEE" },
-    { category: "department", value: "Mech" },
-    { category: "department", value: "BioTech" },
-    // Sections
-    { category: "section", value: "A" },
-    { category: "section", value: "B" },
-    { category: "section", value: "C" },
-    { category: "section", value: "D" },
-    // Batches
-    { category: "batch", value: "2021-2025" },
-    { category: "batch", value: "2022-2026" },
-    { category: "batch", value: "2023-2027" },
-    { category: "batch", value: "2024-2028" },
-    // Years
-    { category: "year", value: "1st" },
-    { category: "year", value: "2nd" },
-    { category: "year", value: "3rd" },
-    { category: "year", value: "4th" },
-    // Domains
-    { category: "domain", value: "Web Development" },
-    { category: "domain", value: "Mobile App Development" },
-    { category: "domain", value: "Machine Learning" },
-    { category: "domain", value: "Computer Vision" },
-    { category: "domain", value: "Cybersecurity" },
-    { category: "domain", value: "Cloud Computing" },
-    // Tech Stack
-    { category: "techstack", value: "React" },
-    { category: "techstack", value: "Node.js" },
-    { category: "techstack", value: "Python" },
-    { category: "techstack", value: "PyTorch" },
-    { category: "techstack", value: "TensorFlow" },
-    { category: "techstack", value: "Django" },
-    { category: "techstack", value: "Flutter" },
-    { category: "techstack", value: "Docker" },
-    { category: "techstack", value: "Kubernetes" },
-    { category: "techstack", value: "AWS" }
-];
-
-/**
- * @desc    Get Master Data Options
- * @route   GET /api/v1/master-data
- * @access  Public
- */
 export const getMasterData = async (req: AuthRequest, res: Response) => {
     try {
-        let count = await MasterData.countDocuments();
-        if (count === 0) {
-            // Seed defaults if empty
-            await MasterData.insertMany(DEFAULT_MASTER_DATA);
-        }
-
-        const langCount = await MasterData.countDocuments({ category: "programming_language" });
-        if (langCount === 0) {
-            const languages = [
-                { category: "programming_language", value: "Python" },
-                { category: "programming_language", value: "JavaScript" },
-                { category: "programming_language", value: "TypeScript" },
-                { category: "programming_language", value: "C++" },
-                { category: "programming_language", value: "Java" },
-                { category: "programming_language", value: "Go" },
-                { category: "programming_language", value: "Rust" },
-                { category: "programming_language", value: "C#" },
-                { category: "programming_language", value: "PHP" },
-                { category: "programming_language", value: "Swift" },
-                { category: "programming_language", value: "Kotlin" },
-                { category: "programming_language", value: "Ruby" }
-            ];
-            await MasterData.insertMany(languages);
-        }
-
         const data = await MasterData.find().sort({ category: 1, value: 1 });
         return res.status(200).json({
             success: true,
             data
         });
     } catch (error: any) {
-        console.error("Get Master Data Error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to retrieve master data."
@@ -129,7 +55,6 @@ export const addMasterData = async (req: AuthRequest, res: Response) => {
             option
         });
     } catch (error: any) {
-        console.error("Add Master Data Error:", error);
         return res.status(500).json({
             success: false,
             message: error.message || "Failed to add master data option."
@@ -161,7 +86,6 @@ export const deleteMasterData = async (req: AuthRequest, res: Response) => {
             message: "Option deleted successfully."
         });
     } catch (error: any) {
-        console.error("Delete Master Data Error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to delete master data option."

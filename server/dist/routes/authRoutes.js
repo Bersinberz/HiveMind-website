@@ -25,7 +25,6 @@ router.post("/cloudinary/delete", authMiddleware_1.protectAdmin, async (req, res
         }
     }
     catch (error) {
-        console.error("Cloudinary Delete Route Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error." });
     }
 });

@@ -19,7 +19,6 @@ const getProjects = async (req, res) => {
         return res.status(200).json({ success: true, projects });
     }
     catch (error) {
-        console.error("Fetch Projects Error: ", error);
         return res.status(500).json({ success: false, message: "Internal server error fetching projects." });
     }
 };
@@ -98,7 +97,6 @@ const createProject = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Create Project Error: ", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error creating project." });
     }
 };
@@ -186,7 +184,7 @@ const updateProject = async (req, res) => {
         }
         await project.save();
         if (oldThumbnailUrl) {
-            (0, cloudinary_1.deleteFromCloudinary)(oldThumbnailUrl).catch(err => console.error("Error deleting old project thumbnail from Cloudinary:", err));
+            (0, cloudinary_1.deleteFromCloudinary)(oldThumbnailUrl).catch(err => { });
         }
         return res.status(200).json({
             success: true,
@@ -195,7 +193,6 @@ const updateProject = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Update Project Error: ", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error updating project." });
     }
 };
@@ -211,12 +208,11 @@ const deleteProject = async (req, res) => {
         const thumbnailUrl = project.thumbnail;
         await Project_1.default.findByIdAndDelete(id);
         if (thumbnailUrl) {
-            (0, cloudinary_1.deleteFromCloudinary)(thumbnailUrl).catch(err => console.error("Error deleting project thumbnail from Cloudinary:", err));
+            (0, cloudinary_1.deleteFromCloudinary)(thumbnailUrl).catch(err => { });
         }
         return res.status(200).json({ success: true, message: "Project deleted successfully." });
     }
     catch (error) {
-        console.error("Delete Project Error: ", error);
         return res.status(500).json({ success: false, message: "Internal server error deleting project." });
     }
 };

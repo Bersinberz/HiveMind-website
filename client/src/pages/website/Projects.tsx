@@ -101,9 +101,7 @@ export default function Projects({ showSplash }: { showSplash?: boolean }) {
                     setProjects(res.projects);
                 }
             })
-            .catch(err => {
-                console.error("Error loading projects:", err);
-            })
+            .catch(() => {})
             .finally(() => {
                 setLoading(false);
             });

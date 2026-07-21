@@ -69,7 +69,7 @@ export default function Events({ showSplash }: { showSplash?: boolean }) {
 
     useEffect(() => {
         TelemetryServices.recordVisit("/events")
-            .catch(err => console.error("Failed to log visit:", err));
+            .catch(() => {});
 
         axiosInstance.get("/v1/community-settings")
             .then(res => {
@@ -77,9 +77,7 @@ export default function Events({ showSplash }: { showSplash?: boolean }) {
                     setSettings(res.data.settings);
                 }
             })
-            .catch(err => {
-                console.error("Failed to load community settings:", err);
-            });
+            .catch(() => {});
     }, []);
 
     const communityName = settings?.communityName || "HiveMind";

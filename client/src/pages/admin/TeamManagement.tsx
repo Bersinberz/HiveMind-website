@@ -43,6 +43,8 @@ export default function TeamManagement() {
     // Image Cropper State
     const [isCropping, setIsCropping] = useState(false);
     const [cropSrc, setCropSrc] = useState("");
+    const [originalSrc, setOriginalSrc] = useState("");
+    const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
     const [zoom, setZoom] = useState(1.2);
     const [offsetX, setOffsetX] = useState(0);
     const [offsetY, setOffsetY] = useState(0);
@@ -62,7 +64,6 @@ export default function TeamManagement() {
         try {
             await axiosInstance.post("/v1/admin/cloudinary/delete", { url });
         } catch (err) {
-            console.error("Error deleting image from Cloudinary:", err);
         }
     };
 
@@ -79,6 +80,52 @@ export default function TeamManagement() {
         batch: "",
     });
 
+    const constrainOffsets = (ox: number, oy: number, currentZoom: number, imgWidth: number, imgHeight: number) => {
+        if (!imgWidth || !imgHeight) return { x: ox, y: oy };
+
+        const scaleCover = Math.max(320 / imgWidth, 368 / imgHeight);
+        const wBase = imgWidth * scaleCover;
+        const hBase = imgHeight * scaleCover;
+
+        const wZoom = wBase * currentZoom;
+        const hZoom = hBase * currentZoom;
+
+        const maxOffsetX = Math.max(0, (wZoom - 320) / 2);
+        const maxOffsetY = Math.max(0, (hZoom - 368) / 2);
+
+        const constrainedX = Math.min(maxOffsetX, Math.max(-maxOffsetX, ox));
+        const constrainedY = Math.min(maxOffsetY, Math.max(-maxOffsetY, oy));
+
+        return { x: constrainedX, y: constrainedY };
+    };
+
+    useEffect(() => {
+        if (cropSrc) {
+            const img = new Image();
+            if (cropSrc.startsWith("http")) {
+                img.crossOrigin = "anonymous";
+            }
+            img.src = cropSrc;
+            img.onload = () => {
+                setImageDimensions({
+                    width: img.naturalWidth,
+                    height: img.naturalHeight
+                });
+            };
+        } else {
+            setImageDimensions(null);
+        }
+    }, [cropSrc]);
+
+    const handleZoomChange = (newZoom: number) => {
+        setZoom(newZoom);
+        if (imageDimensions) {
+            const constrained = constrainOffsets(offsetX, offsetY, newZoom, imageDimensions.width, imageDimensions.height);
+            setOffsetX(constrained.x);
+            setOffsetY(constrained.y);
+        }
+    };
+
     const handleCropMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
         setIsDragging(true);
         setDragStart({ x: e.clientX, y: e.clientY });
@@ -88,8 +135,17 @@ export default function TeamManagement() {
         if (!isDragging) return;
         const dx = e.clientX - dragStart.x;
         const dy = e.clientY - dragStart.y;
-        setOffsetX(prev => prev + dx);
-        setOffsetY(prev => prev + dy);
+        const nextX = offsetX + dx;
+        const nextY = offsetY + dy;
+
+        if (imageDimensions) {
+            const constrained = constrainOffsets(nextX, nextY, zoom, imageDimensions.width, imageDimensions.height);
+            setOffsetX(constrained.x);
+            setOffsetY(constrained.y);
+        } else {
+            setOffsetX(nextX);
+            setOffsetY(nextY);
+        }
         setDragStart({ x: e.clientX, y: e.clientY });
     };
 
@@ -108,8 +164,17 @@ export default function TeamManagement() {
         const touch = e.touches[0];
         const dx = touch.clientX - dragStart.x;
         const dy = touch.clientY - dragStart.y;
-        setOffsetX(prev => prev + dx);
-        setOffsetY(prev => prev + dy);
+        const nextX = offsetX + dx;
+        const nextY = offsetY + dy;
+
+        if (imageDimensions) {
+            const constrained = constrainOffsets(nextX, nextY, zoom, imageDimensions.width, imageDimensions.height);
+            setOffsetX(constrained.x);
+            setOffsetY(constrained.y);
+        } else {
+            setOffsetX(nextX);
+            setOffsetY(nextY);
+        }
         setDragStart({ x: touch.clientX, y: touch.clientY });
     };
 
@@ -120,7 +185,6 @@ export default function TeamManagement() {
                 setMasterOptions(res.data);
             }
         } catch (err) {
-            console.error("Error fetching master data:", err);
         }
     };
 
@@ -132,7 +196,6 @@ export default function TeamManagement() {
                 setTeamMembers(res.members);
             }
         } catch (err) {
-            console.error("Error fetching team:", err);
         } finally {
             setLoadingTeam(false);
         }
@@ -179,6 +242,7 @@ export default function TeamManagement() {
             reader.onload = () => {
                 if (reader.result) {
                     setCropSrc(reader.result as string);
+                    setOriginalSrc(reader.result as string);
                     setZoom(1.2);
                     setOffsetX(0);
                     setOffsetY(0);
@@ -200,6 +264,7 @@ export default function TeamManagement() {
         setModalError("");
         setIsCropping(false);
         setCropSrc("");
+        setOriginalSrc("");
         setFormValues({
             fullname: "",
             registerNumber: "",
@@ -221,6 +286,7 @@ export default function TeamManagement() {
         setModalError("");
         setIsCropping(false);
         setCropSrc("");
+        setOriginalSrc("");
         setFormValues({
             fullname: member.fullname,
             registerNumber: member.registerNumber || "",
@@ -239,45 +305,48 @@ export default function TeamManagement() {
     const renderCropperWorkspace = () => {
         const handleApplyCrop = () => {
             const img = new Image();
+            if (cropSrc.startsWith("http")) {
+                img.crossOrigin = "anonymous";
+            }
             img.src = cropSrc;
             img.onload = async () => {
-                const canvas = document.createElement("canvas");
-                canvas.width = 320;
-                canvas.height = 368;
-                const ctx = canvas.getContext("2d");
-                if (!ctx) return;
-
-                ctx.fillStyle = "#0c0c0e";
-                ctx.fillRect(0, 0, 320, 368);
-
-                const wOrig = img.naturalWidth;
-                const hOrig = img.naturalHeight;
-
-                const scaleCover = Math.max(320 / wOrig, 368 / hOrig);
-                const wBase = wOrig * scaleCover;
-                const hBase = hOrig * scaleCover;
-
-                const wZoom = wBase * zoom;
-                const hZoom = hBase * zoom;
-
-                const x0 = (320 - wZoom) / 2;
-                const y0 = (368 - hZoom) / 2;
-
-                const canvasOffsetX = offsetX * (320 / 240);
-                const canvasOffsetY = offsetY * (368 / 276);
-
-                ctx.drawImage(img, x0 + canvasOffsetX, y0 + canvasOffsetY, wZoom, hZoom);
-
-                const base64 = canvas.toDataURL("image/jpeg", 0.85);
-
-                // Close cropper workspace & trigger Cloudinary upload
-                setIsCropping(false);
-                setCropSrc("");
-                setIsDragging(false);
-                setIsUploading(true);
-                setUploadProgress(0);
-
                 try {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 320;
+                    canvas.height = 368;
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) throw new Error("Could not get 2D context");
+
+                    ctx.fillStyle = "#0c0c0e";
+                    ctx.fillRect(0, 0, 320, 368);
+
+                    const wOrig = img.naturalWidth;
+                    const hOrig = img.naturalHeight;
+
+                    const scaleCover = Math.max(320 / wOrig, 368 / hOrig);
+                    const wBase = wOrig * scaleCover;
+                    const hBase = hOrig * scaleCover;
+
+                    const wZoom = wBase * zoom;
+                    const hZoom = hBase * zoom;
+
+                    const x0 = (320 - wZoom) / 2;
+                    const y0 = (368 - hZoom) / 2;
+
+                    const canvasOffsetX = offsetX;
+                    const canvasOffsetY = offsetY;
+
+                    ctx.drawImage(img, x0 + canvasOffsetX, y0 + canvasOffsetY, wZoom, hZoom);
+
+                    const base64 = canvas.toDataURL("image/jpeg", 0.85);
+
+                    // Close cropper workspace & trigger Cloudinary upload
+                    setIsCropping(false);
+                    setCropSrc("");
+                    setIsDragging(false);
+                    setIsUploading(true);
+                    setUploadProgress(0);
+
                     const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "n348amus";
                     const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "hivemind_preset";
 
@@ -310,17 +379,26 @@ export default function TeamManagement() {
                         setModalError("Upload failed: No secure URL returned from Cloudinary.");
                     }
                 } catch (err: any) {
-                    console.error("Cloudinary upload error:", err);
                     setModalError(
                         err.response?.data?.error?.message ||
-                        "Failed to upload image to Cloudinary. Please verify your upload preset exists."
+                        err.message ||
+                        "Failed to process or upload image."
                     );
+                    setIsCropping(true);
+                    setIsUploading(false);
                 } finally {
                     setIsUploading(false);
                     setUploadProgress(0);
                 }
             };
         };
+
+        const imgWidth = imageDimensions?.width || 320;
+        const imgHeight = imageDimensions?.height || 368;
+
+        const scaleCover = Math.max(320 / imgWidth, 368 / imgHeight);
+        const wBase = imgWidth * scaleCover;
+        const hBase = imgHeight * scaleCover;
 
         return (
             <div className="flex flex-col items-center">
@@ -330,6 +408,12 @@ export default function TeamManagement() {
                 <p className="text-[10px] text-[#888888] mb-6 w-full text-left uppercase tracking-wider font-semibold">
                     Drag the image to position it. Use the slider below to zoom.
                 </p>
+
+                {modalError && (
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl p-3 mb-4 w-full text-left">
+                        {modalError}
+                    </div>
+                )}
 
                 {/* Hexagonal Cropping Frame with Drag Controls */}
                 <div
@@ -342,24 +426,60 @@ export default function TeamManagement() {
                     onTouchEnd={handleCropMouseUp}
                     className="relative bg-black border border-white/10 overflow-hidden flex items-center justify-center shadow-lg cursor-move select-none"
                     style={{
-                        width: "240px",
-                        height: "276px",
-                        clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)"
+                        width: "320px",
+                        height: "368px",
                     }}
                 >
                     <img
                         src={cropSrc}
                         alt="Crop Preview"
-                        className="max-w-none origin-center pointer-events-none select-none"
+                        className="pointer-events-none select-none"
                         style={{
+                            width: `${wBase}px`,
+                            height: `${hBase}px`,
+                            minWidth: `${wBase}px`,
+                            minHeight: `${hBase}px`,
+                            maxWidth: "none",
+                            maxHeight: "none",
                             transform: `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`,
+                            transformOrigin: "center",
                             transition: "none",
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover"
                         }}
                     />
-                    <div className="absolute inset-0 border border-gold-primary/20 pointer-events-none" />
+                    
+                    {/* SVG Hexagon Mask & Gradient Border Overlay */}
+                    <svg
+                        className="absolute inset-0 pointer-events-none select-none z-10"
+                        width="320"
+                        height="368"
+                        viewBox="0 0 320 368"
+                    >
+                        <defs>
+                            <mask id="hexagon-mask">
+                                <rect width="320" height="368" fill="white" />
+                                <polygon
+                                    points="160,0 320,92 320,276 160,368 0,276 0,92"
+                                    fill="black"
+                                />
+                            </mask>
+                            <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="rgba(212, 175, 55, 0.4)" />
+                                <stop offset="100%" stopColor="rgba(212, 175, 55, 0.9)" />
+                            </linearGradient>
+                        </defs>
+                        <rect
+                            width="320"
+                            height="368"
+                            fill="rgba(17, 24, 39, 0.6)"
+                            mask="url(#hexagon-mask)"
+                        />
+                        <polygon
+                            points="160,0 320,92 320,276 160,368 0,276 0,92"
+                            fill="none"
+                            stroke="url(#gold-gradient)"
+                            strokeWidth="3"
+                        />
+                    </svg>
                 </div>
 
                 {/* Sliders */}
@@ -376,7 +496,7 @@ export default function TeamManagement() {
                             step="0.05"
                             className="w-full accent-gold-primary h-1 bg-white/10 rounded-lg cursor-pointer"
                             value={zoom}
-                            onChange={(e) => setZoom(parseFloat(e.target.value))}
+                            onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
                         />
                     </div>
                 </div>
@@ -440,7 +560,6 @@ export default function TeamManagement() {
                 }
             }
         } catch (err: any) {
-            console.error("Modal Submit Error:", err);
             setModalError(err.response?.data?.message || "An error occurred while saving the member.");
         }
     };
@@ -454,7 +573,6 @@ export default function TeamManagement() {
                 alert(res.message || "Failed to delete team member.");
             }
         } catch (err) {
-            console.error("Delete Error:", err);
             alert("An error occurred while deleting.");
         }
     };
@@ -841,17 +959,32 @@ export default function TeamManagement() {
                                                             Upload Photo
                                                         </label>
                                                         {formValues.pic && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={async () => {
-                                                                    const urlToDelete = formValues.pic;
-                                                                    setFormValues({ ...formValues, pic: "" });
-                                                                    await deleteImageFromCloudinary(urlToDelete);
-                                                                }}
-                                                                className="text-red-400 text-[10px] font-bold uppercase hover:underline focus:outline-none bg-transparent border-none cursor-pointer"
-                                                            >
-                                                                Remove Photo
-                                                            </button>
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setCropSrc(originalSrc || formValues.pic);
+                                                                        setZoom(1.2);
+                                                                        setOffsetX(0);
+                                                                        setOffsetY(0);
+                                                                        setIsCropping(true);
+                                                                    }}
+                                                                    className="bg-white/5 border border-white/10 hover:border-gold-primary/30 text-gold-primary text-[10px] font-bold uppercase py-2 px-5 rounded-lg cursor-pointer transition-colors block text-center"
+                                                                >
+                                                                    Edit Crop
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={async () => {
+                                                                        const urlToDelete = formValues.pic;
+                                                                        setFormValues({ ...formValues, pic: "" });
+                                                                        await deleteImageFromCloudinary(urlToDelete);
+                                                                    }}
+                                                                    className="text-red-400 text-[10px] font-bold uppercase hover:underline focus:outline-none bg-transparent border-none cursor-pointer"
+                                                                >
+                                                                    Remove Photo
+                                                                </button>
+                                                            </>
                                                         )}
                                                     </div>
                                                 </div>
@@ -897,7 +1030,6 @@ export default function TeamManagement() {
                                                     <input
                                                         type="text"
                                                         required
-                                                        placeholder="e.g. 211422104001"
                                                         className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
                                                         value={formValues.registerNumber}
                                                         onChange={(e) => setFormValues({ ...formValues, registerNumber: e.target.value })}

@@ -31,7 +31,6 @@ export default function ApplicationsManagement() {
                 setApplications(res.applications);
             }
         } catch (err) {
-            console.error("Error fetching applications:", err);
         } finally {
             setLoadingApps(false);
         }
@@ -68,7 +67,6 @@ export default function ApplicationsManagement() {
                 alert(res.message || "Failed to update status.");
             }
         } catch (err) {
-            console.error("Update status error:", err);
         }
     };
 
@@ -81,7 +79,6 @@ export default function ApplicationsManagement() {
                 alert(res.message || "Failed to delete application.");
             }
         } catch (err) {
-            console.error("Delete application error:", err);
         }
     };
 

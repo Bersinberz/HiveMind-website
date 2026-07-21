@@ -1,36 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 export default function Navbar({ showSplash = false }: { showSplash?: boolean }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const navigate = useNavigate();
+
     const location = useLocation();
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen((prev) => !prev);
     };
 
-    const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, target: string) => {
-        if (target.startsWith("#")) {
-            e.preventDefault();
-            const elementId = target.substring(1);
 
-            if (location.pathname === "/") {
-                const el = document.getElementById(elementId);
-                if (el) {
-                    el.scrollIntoView({ behavior: "smooth" });
-                }
-            } else {
-                navigate("/");
-                setTimeout(() => {
-                    const el = document.getElementById(elementId);
-                    if (el) {
-                        el.scrollIntoView({ behavior: "smooth" });
-                    }
-                }, 150);
-            }
-        }
-    };
 
     return (
         <nav className={`fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-black/40 backdrop-blur-md border-b border-white/5 shadow-2xl transition-all duration-300 ${showSplash ? "opacity-0 -translate-y-full" : "animate-navbar-entrance"
@@ -101,15 +81,7 @@ export default function Navbar({ showSplash = false }: { showSplash?: boolean })
                         Events
                     </Link>
                 </li>
-                <li className="nav-link-item">
-                    <a
-                        href="#blog"
-                        onClick={(e) => handleNavClick(e, "#blog")}
-                        className="relative text-white/70 hover:text-gold-primary hover:drop-shadow-[0_0_8px_rgba(255,193,7,0.4)] no-underline text-sm font-semibold tracking-widest uppercase transition-all duration-300 py-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-gradient-to-r after:from-gold-light after:to-gold-primary after:scale-x-0 after:origin-right hover:after:scale-x-100 hover:after:origin-left after:transition-transform after:duration-300 after:ease-out after:shadow-[0_0_6px_#FFC107]"
-                    >
-                        Blog
-                    </a>
-                </li>
+
             </ul>
 
             {/* Desktop Join Button */}
@@ -208,18 +180,7 @@ export default function Navbar({ showSplash = false }: { showSplash?: boolean })
                                 Events
                             </Link>
                         </li>
-                        <li>
-                            <a
-                                href="#blog"
-                                onClick={(e) => {
-                                    setIsMobileMenuOpen(false);
-                                    handleNavClick(e, "#blog");
-                                }}
-                                className="text-white/85 hover:text-gold-primary text-sm font-semibold tracking-widest uppercase transition-colors"
-                            >
-                                Blog
-                            </a>
-                        </li>
+
                     </ul>
                     <Link
                         to="/join"

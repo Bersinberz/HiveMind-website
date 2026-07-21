@@ -41,8 +41,6 @@ const domainSchema = new Schema<IDomain, DomainModel>(
 );
 
 // Indexes
-domainSchema.index({ name: 1 }, { unique: true });
-domainSchema.index({ slug: 1 }, { unique: true });
 domainSchema.index({ isActive: 1 });
 
 export const Domain = model<IDomain, DomainModel>("Domain", domainSchema);

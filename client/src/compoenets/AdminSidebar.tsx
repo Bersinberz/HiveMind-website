@@ -23,7 +23,6 @@ export default function AdminSidebar({
             await authService.logout();
             navigate("/admin/login");
         } catch (error) {
-            console.error("Logout failed:", error);
             navigate("/admin/login");
         }
     };

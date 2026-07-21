@@ -41,8 +41,6 @@ const technologySchema = new Schema<ITechnology, TechnologyModel>(
 );
 
 // Indexes
-technologySchema.index({ name: 1 }, { unique: true });
-technologySchema.index({ slug: 1 }, { unique: true });
 technologySchema.index({ isActive: 1 });
 
 export const Technology = model<ITechnology, TechnologyModel>("Technology", technologySchema);

@@ -176,7 +176,6 @@ export const applyMember = async (req: Request, res: Response) => {
                     });
                 }
             } catch (mailErr) {
-                console.error("Failed to send application notification emails in background:", mailErr);
             }
         })();
 
@@ -186,7 +185,6 @@ export const applyMember = async (req: Request, res: Response) => {
             applicant: newApplicant
         });
     } catch (error: any) {
-        console.error("Apply Member Route Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error submitting application." });
     }
 };
@@ -197,7 +195,6 @@ export const getApplications = async (req: Request, res: Response) => {
         const applications = await Application.find({}).sort({ createdAt: -1 });
         return res.status(200).json({ success: true, applications });
     } catch (error: any) {
-        console.error("Fetch Applications Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error fetching applications." });
     }
 };
@@ -257,7 +254,6 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
                     });
                 }
             } catch (mailErr) {
-                console.error(`Failed to send status update email in background (status: ${status}):`, mailErr);
             }
         })();
 
@@ -267,7 +263,6 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
             application
         });
     } catch (error: any) {
-        console.error("Update Status Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error updating status." });
     }
 };
@@ -287,13 +282,12 @@ export const deleteApplication = async (req: Request, res: Response) => {
 
         if (resumeUrl) {
             deleteFromCloudinary(resumeUrl).catch(err =>
-                console.error("Error deleting applicant resume from Cloudinary:", err)
+                {}
             );
         }
 
         return res.status(200).json({ success: true, message: "Applicant record deleted successfully." });
     } catch (error: any) {
-        console.error("Delete Applicant Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error deleting applicant." });
     }
 };

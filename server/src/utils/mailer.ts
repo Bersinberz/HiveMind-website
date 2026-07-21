@@ -17,7 +17,6 @@ const getTransporter = async () => {
     }
 
     // Fallback: Create Ethereal test account for local testing
-    console.log("⚠️ SMTP credentials not configured. Generating temporary Ethereal email account...");
     const testAccount = await nodemailer.createTestAccount();
     return nodemailer.createTransport({
         host: "smtp.ethereal.email",
@@ -48,16 +47,13 @@ export const sendEmail = async ({ to, subject, html }: SendEmailOptions) => {
             html
         });
 
-        console.log(`✉️ Email sent successfully: ${info.messageId}`);
 
         // If Ethereal test account was used, print the preview URL
         const previewUrl = nodemailer.getTestMessageUrl(info);
         if (previewUrl) {
-            console.log(`🔗 Ethereal Preview URL: ${previewUrl}`);
         }
         return { success: true, messageId: info.messageId, previewUrl };
     } catch (error) {
-        console.error("❌ Email sending failed:", error);
         return { success: false, error };
     }
 };

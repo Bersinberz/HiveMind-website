@@ -21,7 +21,6 @@ export const getDomains = async (req: AuthRequest, res: Response) => {
             data: domains,
         });
     } catch (error: any) {
-        console.error("Get Domains Error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to retrieve domains.",
@@ -51,7 +50,6 @@ export const getDomainById = async (req: AuthRequest, res: Response) => {
             data: domain,
         });
     } catch (error: any) {
-        console.error("Get Domain By ID Error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to retrieve domain.",
@@ -124,7 +122,6 @@ export const createDomain = async (req: AuthRequest, res: Response) => {
             data: newDomain,
         });
     } catch (error: any) {
-        console.error("Create Domain Error:", error);
         return res.status(500).json({
             success: false,
             message: error.message || "Failed to create domain.",
@@ -233,7 +230,6 @@ export const updateDomain = async (req: AuthRequest, res: Response) => {
             data: updatedDomain,
         });
     } catch (error: any) {
-        console.error("Update Domain Error:", error);
         return res.status(500).json({
             success: false,
             message: error.message || "Failed to update domain.",
@@ -295,7 +291,6 @@ export const deleteDomain = async (req: AuthRequest, res: Response) => {
             message: "Domain deleted successfully.",
         });
     } catch (error: any) {
-        console.error("Delete Domain Error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to delete domain.",

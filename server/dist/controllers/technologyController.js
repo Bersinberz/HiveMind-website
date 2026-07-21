@@ -36,7 +36,6 @@ const getTechnologies = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Get Technologies Error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to retrieve technologies.",
@@ -65,7 +64,6 @@ const getTechnologyById = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Get Technology By ID Error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to retrieve technology.",
@@ -128,7 +126,6 @@ const createTechnology = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Create Technology Error:", error);
         return res.status(500).json({
             success: false,
             message: error.message || "Failed to create technology.",
@@ -217,7 +214,6 @@ const updateTechnology = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Update Technology Error:", error);
         return res.status(500).json({
             success: false,
             message: error.message || "Failed to update technology.",
@@ -270,7 +266,6 @@ const deleteTechnology = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Delete Technology Error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to delete technology.",

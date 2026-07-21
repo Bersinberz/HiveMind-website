@@ -231,9 +231,7 @@ export default function JoinHiveMind({ showSplash }: { showSplash?: boolean }) {
                     setMasterOptions(res.data);
                 }
             })
-            .catch(err => {
-                console.error("Failed to load master data:", err);
-            });
+            .catch(() => {});
 
         DomainServices.getDomains()
             .then(res => {
@@ -241,9 +239,7 @@ export default function JoinHiveMind({ showSplash }: { showSplash?: boolean }) {
                     setDomainsList(res.data);
                 }
             })
-            .catch(err => {
-                console.error("Failed to load domains:", err);
-            });
+            .catch(() => {});
 
         CommunitySettingsServices.getSettings()
             .then(res => {
@@ -251,9 +247,7 @@ export default function JoinHiveMind({ showSplash }: { showSplash?: boolean }) {
                     setAcceptingApplications(res.settings.acceptingApplications !== false);
                 }
             })
-            .catch(err => {
-                console.error("Failed to load community settings:", err);
-            });
+            .catch(() => {});
     }, []);
 
     const [formValues, setFormValues] = useState({
@@ -279,7 +273,6 @@ export default function JoinHiveMind({ showSplash }: { showSplash?: boolean }) {
         try {
             await axiosInstance.post("/v1/admin/cloudinary/delete", { url });
         } catch (err) {
-            console.error("Error deleting resume from Cloudinary:", err);
         }
     };
 
@@ -332,7 +325,6 @@ export default function JoinHiveMind({ showSplash }: { showSplash?: boolean }) {
                     setToast({ message: "Upload failed: No URL returned from server.", type: "error" });
                 }
             } catch (err: any) {
-                console.error("Cloudinary upload error:", err);
                 setToast({
                     message: err.response?.data?.error?.message || "Failed to upload resume to Cloudinary.",
                     type: "error"
@@ -396,7 +388,6 @@ export default function JoinHiveMind({ showSplash }: { showSplash?: boolean }) {
                 setToast({ message: res.message || "Failed to submit application.", type: "error" });
             }
         } catch (error: any) {
-            console.error("Submission error:", error);
             setToast({
                 message: error.response?.data?.message || "An error occurred while submitting your application.",
                 type: "error"

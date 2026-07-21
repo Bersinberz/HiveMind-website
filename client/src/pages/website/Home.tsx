@@ -438,7 +438,7 @@ export default function Home({ showSplash }: { showSplash?: boolean }) {
     useEffect(() => {
         // Record visitor telemetry
         TelemetryServices.recordVisit("/")
-            .catch(err => console.error("Failed to log visit:", err));
+            .catch(() => {});
 
         axiosInstance.get("/v1/community-settings")
             .then(res => {
@@ -446,9 +446,7 @@ export default function Home({ showSplash }: { showSplash?: boolean }) {
                     setSettings(res.data.settings);
                 }
             })
-            .catch(err => {
-                console.error("Failed to load community settings:", err);
-            });
+            .catch(() => {});
     }, []);
 
     return (

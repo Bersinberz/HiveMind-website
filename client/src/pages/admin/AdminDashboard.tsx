@@ -29,7 +29,6 @@ export default function AdminDashboard() {
                 setStats(res.stats);
             }
         } catch (err) {
-            console.error("Error fetching telemetry stats:", err);
         } finally {
             setLoadingStats(false);
         }
@@ -54,7 +53,6 @@ export default function AdminDashboard() {
                 setApplications(res.applications);
             }
         } catch (err) {
-            console.error("Error fetching applications:", err);
         } finally {
             setLoadingApps(false);
         }
@@ -75,7 +73,6 @@ export default function AdminDashboard() {
                 alert(res.message || "Failed to update status.");
             }
         } catch (err) {
-            console.error("Update status error:", err);
         }
     };
 
@@ -88,7 +85,6 @@ export default function AdminDashboard() {
                 alert(res.message || "Failed to delete application.");
             }
         } catch (err) {
-            console.error("Delete application error:", err);
         }
     };
 

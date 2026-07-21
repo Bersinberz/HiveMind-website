@@ -38,8 +38,6 @@ const domainSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 // Indexes
-domainSchema.index({ name: 1 }, { unique: true });
-domainSchema.index({ slug: 1 }, { unique: true });
 domainSchema.index({ isActive: 1 });
 exports.Domain = (0, mongoose_1.model)("Domain", domainSchema);
 exports.default = exports.Domain;

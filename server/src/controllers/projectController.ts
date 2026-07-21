@@ -16,7 +16,6 @@ export const getProjects = async (req: Request, res: Response) => {
         const projects = await Project.find({}).sort({ startDate: -1 });
         return res.status(200).json({ success: true, projects });
     } catch (error) {
-        console.error("Fetch Projects Error: ", error);
         return res.status(500).json({ success: false, message: "Internal server error fetching projects." });
     }
 };
@@ -102,7 +101,6 @@ export const createProject = async (req: Request, res: Response) => {
             project: newProject,
         });
     } catch (error: any) {
-        console.error("Create Project Error: ", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error creating project." });
     }
 };
@@ -203,7 +201,7 @@ export const updateProject = async (req: Request, res: Response) => {
 
         if (oldThumbnailUrl) {
             deleteFromCloudinary(oldThumbnailUrl).catch(err => 
-                console.error("Error deleting old project thumbnail from Cloudinary:", err)
+                {}
             );
         }
 
@@ -213,7 +211,6 @@ export const updateProject = async (req: Request, res: Response) => {
             project,
         });
     } catch (error: any) {
-        console.error("Update Project Error: ", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error updating project." });
     }
 };
@@ -233,13 +230,12 @@ export const deleteProject = async (req: Request, res: Response) => {
 
         if (thumbnailUrl) {
             deleteFromCloudinary(thumbnailUrl).catch(err => 
-                console.error("Error deleting project thumbnail from Cloudinary:", err)
+                {}
             );
         }
 
         return res.status(200).json({ success: true, message: "Project deleted successfully." });
     } catch (error) {
-        console.error("Delete Project Error: ", error);
         return res.status(500).json({ success: false, message: "Internal server error deleting project." });
     }
 };

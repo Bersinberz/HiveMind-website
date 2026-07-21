@@ -73,7 +73,6 @@ export default function AdminLogin() {
                 setErrorMessage(data.message || "Authentication failed.");
             }
         } catch (error: any) {
-            console.error("Login failure: ", error);
             const msg = error.response?.data?.message || "Could not connect to the backend server. Please verify it is running on port 5000.";
             setErrorMessage(msg);
         } finally {

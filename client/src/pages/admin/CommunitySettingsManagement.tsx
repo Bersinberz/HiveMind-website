@@ -69,7 +69,6 @@ export default function CommunitySettingsManagement() {
         try {
             await axiosInstance.post("/v1/admin/cloudinary/delete", { url });
         } catch (err) {
-            console.error("Error deleting image from Cloudinary:", err);
         }
     };
 
@@ -90,7 +89,6 @@ export default function CommunitySettingsManagement() {
                 setAcceptingApplications(res.settings.acceptingApplications !== false);
             }
         } catch (err) {
-            console.error("Error fetching community settings:", err);
             setToast({ message: "Failed to load settings.", type: "error" });
         }
     };
@@ -245,7 +243,6 @@ export default function CommunitySettingsManagement() {
                     setVoiceError("Upload failed: No secure URL returned from Cloudinary.");
                 }
             } catch (err: any) {
-                console.error("Cloudinary upload error:", err);
                 setVoiceError(
                     err.response?.data?.error?.message ||
                     "Failed to upload image. Please verify Cloudinary credentials."
@@ -363,7 +360,6 @@ export default function CommunitySettingsManagement() {
                 setToast({ message: res.message || "Failed to update settings.", type: "error" });
             }
         } catch (err) {
-            console.error("Save settings error:", err);
             setToast({ message: "Server connection failed.", type: "error" });
         } finally {
             setSaving(false);

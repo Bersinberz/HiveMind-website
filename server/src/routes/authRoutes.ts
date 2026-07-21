@@ -25,7 +25,6 @@ router.post("/cloudinary/delete", protectAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: "Failed to delete image from Cloudinary or invalid URL." });
         }
     } catch (error: any) {
-        console.error("Cloudinary Delete Route Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error." });
     }
 });

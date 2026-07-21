@@ -43,7 +43,7 @@ export default function Journey({ showSplash }: { showSplash?: boolean }) {
     useEffect(() => {
         // Record visitor telemetry
         TelemetryServices.recordVisit("/journey")
-            .catch(err => console.error("Failed to log visit:", err));
+            .catch(() => {});
 
         axiosInstance.get("/v1/community-settings")
             .then(res => {
@@ -51,9 +51,7 @@ export default function Journey({ showSplash }: { showSplash?: boolean }) {
                     setSettings(res.data.settings);
                 }
             })
-            .catch(err => {
-                console.error("Failed to load community settings:", err);
-            });
+            .catch(() => {});
     }, []);
 
     const communityName = settings?.communityName || "HiveMind";

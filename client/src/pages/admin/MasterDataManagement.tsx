@@ -282,7 +282,6 @@ export default function MasterDataManagement() {
                 setOptions(res.data);
             }
         } catch (err) {
-            console.error("Error fetching master data:", err);
             setToast({ message: "Failed to load master data.", type: "error" });
         }
     };
@@ -305,7 +304,6 @@ export default function MasterDataManagement() {
                 setToast({ message: res.message || "Failed to add option.", type: "error" });
             }
         } catch (err: any) {
-            console.error("Add master data option error:", err);
             setToast({ message: err.response?.data?.message || "Failed to add option.", type: "error" });
         } finally {
             setAddingCategory(null);
@@ -322,7 +320,6 @@ export default function MasterDataManagement() {
                 setToast({ message: res.message || "Failed to delete option.", type: "error" });
             }
         } catch (err) {
-            console.error("Delete master data option error:", err);
             setToast({ message: "Failed to delete option.", type: "error" });
         }
     };
@@ -365,7 +362,6 @@ export default function MasterDataManagement() {
                 setDomainsList(res.data);
             }
         } catch (err) {
-            console.error("Error fetching domains:", err);
             setToast({ message: "Failed to load domains.", type: "error" });
         } finally {
             setLoadingDomains(false);
@@ -424,7 +420,6 @@ export default function MasterDataManagement() {
                 }
             }
         } catch (err: any) {
-            console.error("Domain submit error:", err);
             setToast({ message: err.response?.data?.message || "Failed to save domain.", type: "error" });
         }
     };
@@ -445,7 +440,6 @@ export default function MasterDataManagement() {
             }
             return null;
         } catch (err: any) {
-            console.error("Quick tech create error:", err);
             setToast({ message: err.response?.data?.message || "Failed to create technology.", type: "error" });
             return null;
         }
@@ -469,7 +463,6 @@ export default function MasterDataManagement() {
                 setToast({ message: res.message || "Failed to delete domain.", type: "error" });
             }
         } catch (err: any) {
-            console.error("Delete domain error:", err);
             setToast({ message: err.response?.data?.message || "Failed to delete domain.", type: "error" });
         }
     };
@@ -482,7 +475,6 @@ export default function MasterDataManagement() {
                 fetchDomains();
             }
         } catch (err: any) {
-            console.error("Toggle domain status error:", err);
             setToast({ message: "Failed to update domain status.", type: "error" });
         }
     };
@@ -513,7 +505,6 @@ export default function MasterDataManagement() {
                 setTechnologiesList(res.data);
             }
         } catch (err) {
-            console.error("Error fetching technologies:", err);
             setToast({ message: "Failed to load technologies.", type: "error" });
         } finally {
             setLoadingTechnologies(false);
@@ -572,7 +563,6 @@ export default function MasterDataManagement() {
                 }
             }
         } catch (err: any) {
-            console.error("Tech submit error:", err);
             setToast({ message: err.response?.data?.message || "Failed to save technology.", type: "error" });
         }
     };
@@ -595,7 +585,6 @@ export default function MasterDataManagement() {
                 setToast({ message: res.message || "Failed to delete technology.", type: "error" });
             }
         } catch (err: any) {
-            console.error("Delete technology error:", err);
             setToast({ message: err.response?.data?.message || "Failed to delete technology.", type: "error" });
         }
     };
@@ -608,7 +597,6 @@ export default function MasterDataManagement() {
                 fetchTechnologies();
             }
         } catch (err: any) {
-            console.error("Toggle tech status error:", err);
             setToast({ message: "Failed to update technology status.", type: "error" });
         }
     };

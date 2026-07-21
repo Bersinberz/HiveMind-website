@@ -109,7 +109,7 @@ const applyMember = async (req, res) => {
                 // Send to candidate
                 await (0, mailer_1.sendEmail)({
                     to: newApplicant.email,
-                    subject: "Application Received - HiveMind Community",
+                    subject: "Application Received | HiveMind",
                     html: candidateWelcomeHtml
                 });
                 // Send to team leads
@@ -122,13 +122,12 @@ const applyMember = async (req, res) => {
                     const leadsNotificationHtml = (0, emailTemplates_1.getLeadsNotificationEmail)(newApplicant.fullname, newApplicant.registerNumber, newApplicant.email, newApplicant.phoneNumber, newApplicant.dept, newApplicant.year, newApplicant.domainOfInterest, newApplicant.programmingLanguages.join(", "), newApplicant.whyJoin, newApplicant.howDidYouHear, newApplicant.resume, newApplicant.linkedin, newApplicant.github || "", newApplicant.portfolio || "");
                     await (0, mailer_1.sendEmail)({
                         to: leadsEmails.join(","),
-                        subject: `[New Member Application] ${newApplicant.fullname} - ${newApplicant.dept}`,
+                        subject: `New Membership Application | ${newApplicant.fullname}`,
                         html: leadsNotificationHtml
                     });
                 }
             }
             catch (mailErr) {
-                console.error("Failed to send application notification emails in background:", mailErr);
             }
         })();
         return res.status(201).json({
@@ -138,7 +137,6 @@ const applyMember = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Apply Member Route Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error submitting application." });
     }
 };
@@ -150,7 +148,6 @@ const getApplications = async (req, res) => {
         return res.status(200).json({ success: true, applications });
     }
     catch (error) {
-        console.error("Fetch Applications Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error fetching applications." });
     }
 };
@@ -185,15 +182,15 @@ const updateApplicationStatus = async (req, res) => {
                 if (status === "Interviewed") {
                     const dateVal = interviewDate || application.interviewDate || "";
                     const timeVal = interviewTime || application.interviewTime || "";
-                    subject = "Technical Discussion Invitation - HiveMind Community";
+                    subject = "Technical Interview Invitation | HiveMind";
                     html = (0, emailTemplates_1.getInterviewInvitationEmail)(application.fullname, dateVal, timeVal);
                 }
                 else if (status === "Approved") {
-                    subject = "Welcome to HiveMind!";
+                    subject = "Welcome to HiveMind";
                     html = (0, emailTemplates_1.getCandidateAcceptanceEmail)(application.fullname);
                 }
                 else if (status === "Rejected") {
-                    subject = "HiveMind Application Status Update";
+                    subject = "Update on Your HiveMind Application";
                     html = (0, emailTemplates_1.getCandidateRejectionEmail)(application.fullname);
                 }
                 if (html && subject) {
@@ -205,7 +202,6 @@ const updateApplicationStatus = async (req, res) => {
                 }
             }
             catch (mailErr) {
-                console.error(`Failed to send status update email in background (status: ${status}):`, mailErr);
             }
         })();
         return res.status(200).json({
@@ -215,7 +211,6 @@ const updateApplicationStatus = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Update Status Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error updating status." });
     }
 };
@@ -231,12 +226,11 @@ const deleteApplication = async (req, res) => {
         const resumeUrl = application.resume;
         await Application_1.default.findByIdAndDelete(id);
         if (resumeUrl) {
-            (0, cloudinary_1.deleteFromCloudinary)(resumeUrl).catch(err => console.error("Error deleting applicant resume from Cloudinary:", err));
+            (0, cloudinary_1.deleteFromCloudinary)(resumeUrl).catch(err => { });
         }
         return res.status(200).json({ success: true, message: "Applicant record deleted successfully." });
     }
     catch (error) {
-        console.error("Delete Applicant Error:", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error deleting applicant." });
     }
 };

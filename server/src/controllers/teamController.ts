@@ -11,7 +11,6 @@ export const getTeamMembers = async (req: Request, res: Response) => {
         const members = await Team.find({}).sort({ createdAt: 1 });
         return res.status(200).json({ success: true, members });
     } catch (error) {
-        console.error("Fetch Team Members Error: ", error);
         return res.status(500).json({ success: false, message: "Internal server error fetching team members." });
     }
 };
@@ -82,7 +81,6 @@ export const createTeamMember = async (req: Request, res: Response) => {
             member: newMember
         });
     } catch (error: any) {
-        console.error("Create Team Member Error: ", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error creating team member." });
     }
 };
@@ -175,7 +173,7 @@ export const updateTeamMember = async (req: Request, res: Response) => {
 
         if (oldPicUrl) {
             deleteFromCloudinary(oldPicUrl).catch(err => 
-                console.error("Error deleting old profile photo from Cloudinary:", err)
+                {}
             );
         }
 
@@ -185,7 +183,6 @@ export const updateTeamMember = async (req: Request, res: Response) => {
             member
         });
     } catch (error: any) {
-        console.error("Update Team Member Error: ", error);
         return res.status(500).json({ success: false, message: error.message || "Internal server error updating team member." });
     }
 };
@@ -205,13 +202,12 @@ export const deleteTeamMember = async (req: Request, res: Response) => {
 
         if (picUrl) {
             deleteFromCloudinary(picUrl).catch(err => 
-                console.error("Error deleting profile photo from Cloudinary:", err)
+                {}
             );
         }
 
         return res.status(200).json({ success: true, message: "Team member deleted successfully." });
     } catch (error) {
-        console.error("Delete Team Member Error: ", error);
         return res.status(500).json({ success: false, message: "Internal server error deleting team member." });
     }
 };

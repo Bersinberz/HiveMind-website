@@ -27,7 +27,6 @@ const recordVisit = async (req, res) => {
         return res.status(200).json({ success: true });
     }
     catch (err) {
-        console.error("Error logging visit:", err);
         return res.status(500).json({ success: false, message: err.message });
     }
 };
@@ -101,7 +100,6 @@ const getDashboardStats = async (req, res) => {
         });
     }
     catch (err) {
-        console.error("Error gathering dashboard stats:", err);
         return res.status(500).json({ success: false, message: err.message });
     }
 };
