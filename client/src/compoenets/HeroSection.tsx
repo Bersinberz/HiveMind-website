@@ -1,9 +1,48 @@
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 
-export default function HeroSection() {
+interface HeroSectionProps {
+    settings?: {
+        communityName: string;
+        tagline?: string;
+    } | null;
+    showSplash?: boolean;
+}
+
+export default function HeroSection({ settings, showSplash }: HeroSectionProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const heroRef = useRef<HTMLDivElement>(null);
     const hiveTargetRef = useRef<HTMLSpanElement>(null);
+    const [gifLoaded, setGifLoaded] = useState(false);
+
+    const communityName = settings?.communityName || "HiveMind";
+    const tagline = settings?.tagline || "Artificial Intelligence Community";
+
+    const splitName = (name: string) => {
+        const spaceIdx = name.indexOf(" ");
+        if (spaceIdx > 0) {
+            return {
+                first: name.substring(0, spaceIdx),
+                second: name.substring(spaceIdx)
+            };
+        }
+        for (let i = 1; i < name.length; i++) {
+            const char = name[i];
+            if (char === char.toUpperCase() && char !== char.toLowerCase()) {
+                return {
+                    first: name.substring(0, i),
+                    second: name.substring(i)
+                };
+            }
+        }
+        const mid = Math.ceil(name.length / 2);
+        return {
+            first: name.substring(0, mid),
+            second: name.substring(mid)
+        };
+    };
+
+    const { first: firstPart, second: secondPart } = splitName(communityName);
 
     // ==========================================
     // TYPEWRITER EFFECT LOGIC
@@ -396,7 +435,7 @@ export default function HeroSection() {
             heroSection.removeEventListener("mousemove", handleMouseMove);
             heroSection.removeEventListener("mouseleave", handleMouseLeave);
         };
-    }, []);
+    }, [communityName]);
 
     return (
         <section
@@ -410,7 +449,10 @@ export default function HeroSection() {
             <img
                 src="/assets/bee_background.gif"
                 alt="Center Atmospheric GIF"
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1800px] max-w-[200vw] h-auto z-[3] opacity-85 pointer-events-none mix-blend-screen center-bg-gif-mask"
+                onLoad={() => setGifLoaded(true)}
+                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1800px] max-w-[200vw] h-auto z-[3] pointer-events-none mix-blend-screen center-bg-gif-mask transition-opacity duration-1000 ${
+                    gifLoaded ? "opacity-85" : "opacity-0"
+                }`}
             />
 
             <div className="absolute w-[50vw] h-[50vw] bg-[radial-gradient(circle,rgba(255,193,7,0.08)_0%,transparent_60%)] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-[3] pointer-events-none animate-[pulseGlowBg_6s_ease-in-out_infinite_alternate]"></div>
@@ -419,27 +461,107 @@ export default function HeroSection() {
             <canvas id="fx-canvas" ref={canvasRef} className="absolute top-0 left-0 w-full h-full z-[4] pointer-events-none"></canvas>
 
             {/* Centered Typography Content */}
-            <div className="relative z-[5] text-center select-none">
-                <h1
-                    className="text-[clamp(2.5rem,8vw,8rem)] font-black tracking-tighter leading-[1.1] mb-6 uppercase transition-[filter] duration-800 ease-out filter drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)] drop-shadow-[0_0_var(--glow-intensity)_rgba(255,193,7,0.4)] animate-text-entrance"
+            <motion.div
+                className="relative z-[5] text-center select-none"
+                initial="hidden"
+                whileInView={showSplash ? "hidden" : "visible"}
+                viewport={{ once: false, amount: 0.15 }}
+                variants={{
+                    hidden: {},
+                    visible: {
+                        transition: {
+                            staggerChildren: 0.25
+                        }
+                    }
+                }}
+            >
+                <motion.h1
+                    variants={{
+                        hidden: {
+                            opacity: 0,
+                            scale: 0.9,
+                            y: 40,
+                            rotateX: -20,
+                            filter: "blur(15px)"
+                        },
+                        visible: {
+                            opacity: 1,
+                            scale: 1,
+                            y: 0,
+                            rotateX: 0,
+                            filter: "blur(0px)",
+                            transition: {
+                                duration: 1.5,
+                                ease: [0.075, 0.82, 0.165, 1]
+                            }
+                        }
+                    }}
+                    style={{ perspective: 500 }}
+                    className="text-[clamp(2.5rem,8vw,8rem)] font-black tracking-tighter leading-[1.1] mb-6 uppercase transition-[filter] duration-800 ease-out filter drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)] drop-shadow-[0_0_var(--glow-intensity)_rgba(255,193,7,0.4)]"
                     id="main-heading"
                 >
                     {/* Spans split for targeted canvas effects */}
                     <span className="gold-sweep-text" id="hive-target" ref={hiveTargetRef}>
-                        Hive
+                        {firstPart}
                     </span>
-                    <span className="hollow-glow-text">Mind</span>
-                </h1>
-                <h2 className="relative inline-block text-[clamp(0.75rem,1.5vw,1.1rem)] font-medium text-[#C0C0C0] tracking-[0.6em] uppercase subheading-lines subheading-lines animate-text-entrance [animation-delay:1s] opacity-0">
-                    Artificial Intelligence Community
-                </h2>
+                    <span className="hollow-glow-text">{secondPart}</span>
+                </motion.h1>
+                <motion.h2
+                    variants={{
+                        hidden: {
+                            opacity: 0,
+                            scale: 0.9,
+                            y: 20,
+                            rotateX: -20,
+                            filter: "blur(10px)"
+                        },
+                        visible: {
+                            opacity: 1,
+                            scale: 1,
+                            y: 0,
+                            rotateX: 0,
+                            filter: "blur(0px)",
+                            transition: {
+                                duration: 1.2,
+                                ease: [0.075, 0.82, 0.165, 1]
+                            }
+                        }
+                    }}
+                    style={{ perspective: 500 }}
+                    className="relative inline-block text-[clamp(0.75rem,1.3vw,1.1rem)] font-bold text-[#E5E5E5] tracking-[0.3em] uppercase subheading-lines"
+                >
+                    {tagline}
+                </motion.h2>
 
                 {/* Typewriter Effect Container */}
-                <div className="mt-6 text-[clamp(1rem,2vw,1.3rem)] font-medium text-white tracking-widest animate-text-entrance [animation-delay:1.5s] opacity-0">
+                <motion.div
+                    variants={{
+                        hidden: {
+                            opacity: 0,
+                            scale: 0.9,
+                            y: 20,
+                            rotateX: -20,
+                            filter: "blur(10px)"
+                        },
+                        visible: {
+                            opacity: 1,
+                            scale: 1,
+                            y: 0,
+                            rotateX: 0,
+                            filter: "blur(0px)",
+                            transition: {
+                                duration: 1.2,
+                                ease: [0.075, 0.82, 0.165, 1]
+                            }
+                        }
+                    }}
+                    style={{ perspective: 500 }}
+                    className="mt-6 text-[clamp(1rem,2vw,1.3rem)] font-medium text-white tracking-widest"
+                >
                     We explore <span className="text-gold-primary font-bold drop-shadow-[0_0_10px_rgba(255,193,7,0.4)]">{typewriterText}</span>
                     <span className="text-gold-primary font-bold cursor-blink">|</span>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
         </section>
     );
 }

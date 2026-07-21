@@ -96,6 +96,14 @@ const ApplicationSchema = new Schema<ApplicationDocument>(
             type: String,
             enum: ["Pending", "Interviewed", "Approved", "Rejected"],
             default: "Pending"
+        },
+        interviewDate: {
+            type: String,
+            default: ""
+        },
+        interviewTime: {
+            type: String,
+            default: ""
         }
     },
     {

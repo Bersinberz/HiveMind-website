@@ -11,6 +11,8 @@ import CommunitySettingsManagement from "./pages/admin/CommunitySettingsManageme
 import MasterDataManagement from "./pages/admin/MasterDataManagement";
 import Projects from "./pages/website/Projects";
 import JoinHiveMind from "./pages/website/JoinHiveMind";
+import Journey from "./pages/website/Journey";
+import Events from "./pages/website/Events";
 import SplashScreen from "./compoenets/SplashScreen";
 import PageTransition from "./compoenets/PageTransition";
 
@@ -25,32 +27,48 @@ export default function App() {
                 <Route
                     path="/"
                     element={
-                        <PageTransition>
-                            <Home />
+                        <PageTransition deferUntil={showSplash}>
+                            <Home showSplash={showSplash} />
                         </PageTransition>
                     }
                 />
                 <Route
                     path="/projects"
                     element={
-                        <PageTransition>
-                            <Projects />
+                        <PageTransition deferUntil={showSplash}>
+                            <Projects showSplash={showSplash} />
                         </PageTransition>
                     }
                 />
                 <Route
                     path="/join"
                     element={
-                        <PageTransition>
-                            <JoinHiveMind />
+                        <PageTransition deferUntil={showSplash}>
+                            <JoinHiveMind showSplash={showSplash} />
                         </PageTransition>
                     }
                 />
                 <Route
                     path="/team"
                     element={
-                        <PageTransition>
-                            <Team />
+                        <PageTransition deferUntil={showSplash}>
+                            <Team showSplash={showSplash} />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/journey"
+                    element={
+                        <PageTransition deferUntil={showSplash}>
+                            <Journey showSplash={showSplash} />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/events"
+                    element={
+                        <PageTransition deferUntil={showSplash}>
+                            <Events showSplash={showSplash} />
                         </PageTransition>
                     }
                 />
@@ -114,8 +132,8 @@ export default function App() {
                 <Route
                     path="*"
                     element={
-                        <PageTransition>
-                            <Home />
+                        <PageTransition deferUntil={showSplash}>
+                            <Home showSplash={showSplash} />
                         </PageTransition>
                     }
                 />

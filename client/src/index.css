@@ -38,6 +38,29 @@ html {
     font-family: 'Plus Jakarta Sans', 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Global Keyframes */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
 /* ==========================================================================
    ADMIN PANEL CUSTOMIZATIONS (NO ALL-CAPS, SLEEK FONT, ANIMATIONS)
    ========================================================================== */
@@ -279,6 +302,21 @@ html {
     animation: textEntranceAwesome 2.5s cubic-bezier(0.075, 0.82, 0.165, 1) forwards;
 }
 
+@keyframes navbarEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-navbar-entrance {
+    animation: navbarEntrance 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .animate-float-about {
     animation: floatAboutImg 6s ease-in-out infinite;
 }
@@ -300,6 +338,14 @@ html {
     animation: marquee 30s linear infinite;
 }
 
+/* Pause marquee on hover */
+@media (hover: hover) {
+    .mask-marquee:hover .animate-marquee {
+        animation-play-state: paused;
+    }
+}
+
+
 /* Linear fading mask for marquee edges */
 .mask-marquee {
     -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
@@ -320,3 +366,33 @@ html {
         opacity: 1;
     }
 }
+
+/* ==========================================================================
+   GLOBAL TYPOGRAPHY OVERRIDES FOR BOLD READABILITY
+   ========================================================================== */
+
+/* Elevate default font properties */
+body, html {
+    font-size: 16px;
+    line-height: 1.65;
+}
+
+/* Systematic overrides for standard Tailwind font-size classes */
+.text-xs { font-size: 0.875rem !important; }  /* 12px -> 14px */
+.text-sm { font-size: 1rem !important; }     /* 14px -> 16px */
+.text-base { font-size: 1.125rem !important; } /* 16px -> 18px */
+.text-lg { font-size: 1.25rem !important; }   /* 18px -> 20px */
+.text-xl { font-size: 1.5rem !important; }    /* 20px -> 24px */
+.text-2xl { font-size: 1.75rem !important; }  /* 24px -> 28px */
+.text-3xl { font-size: 2.25rem !important; }  /* 30px -> 36px */
+.text-4xl { font-size: 3rem !important; }      /* 36px -> 48px */
+.text-5xl { font-size: 3.75rem !important; }   /* 48px -> 60px */
+
+/* Scale up arbitrary small pixel-based utility sizes */
+.text-\[8px\] { font-size: 11px !important; }
+.text-\[9px\] { font-size: 12px !important; }
+.text-\[10px\] { font-size: 13px !important; }
+.text-\[11px\] { font-size: 14px !important; }
+.text-\[12px\] { font-size: 15px !important; }
+.text-\[13px\] { font-size: 15px !important; }
+.text-\[14px\] { font-size: 16px !important; }

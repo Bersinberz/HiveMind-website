@@ -1,10 +1,12 @@
-import { Document, Model } from "mongoose";
+import { Document, Model, Types } from "mongoose";
 
 export interface IProject extends Document {
     title: string;
     description: string;
     domain: string[];
     techStack: string[];
+    domains: Types.ObjectId[];
+    technologies: Types.ObjectId[];
     github: string;
     liveDemo?: string;
     thumbnail: string;

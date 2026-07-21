@@ -18,6 +18,8 @@ export interface Application {
     hoursPerWeek: number;
     howDidYouHear: string;
     status: "Pending" | "Interviewed" | "Approved" | "Rejected";
+    interviewDate?: string;
+    interviewTime?: string;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -40,8 +42,17 @@ const ApplicationServices = {
         return response.data;
     },
 
-    updateApplicationStatus: async (id: string, status: Application["status"]): Promise<ApplicationResponse> => {
-        const response = await axiosInstance.put<ApplicationResponse>(`/v1/applications/${id}/status`, { status });
+    updateApplicationStatus: async (
+        id: string, 
+        status: Application["status"], 
+        interviewDate?: string, 
+        interviewTime?: string
+    ): Promise<ApplicationResponse> => {
+        const response = await axiosInstance.put<ApplicationResponse>(`/v1/applications/${id}/status`, { 
+            status, 
+            interviewDate, 
+            interviewTime 
+        });
         return response.data;
     },
 

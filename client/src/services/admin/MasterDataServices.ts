@@ -2,7 +2,7 @@ import axiosInstance from "../axiosInstance";
 
 export interface IMasterDataOption {
     _id: string;
-    category: "department" | "section" | "batch" | "year" | "domain" | "techstack";
+    category: "department" | "section" | "batch" | "year" | "domain" | "techstack" | "programming_language";
     value: string;
     createdAt?: string;
     updatedAt?: string;

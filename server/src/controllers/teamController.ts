@@ -8,7 +8,7 @@ const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
 // GET /api/v1/team
 export const getTeamMembers = async (req: Request, res: Response) => {
     try {
-        const members = await Team.find({}).sort({ createdAt: -1 });
+        const members = await Team.find({}).sort({ createdAt: 1 });
         return res.status(200).json({ success: true, members });
     } catch (error) {
         console.error("Fetch Team Members Error: ", error);

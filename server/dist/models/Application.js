@@ -123,6 +123,14 @@ const ApplicationSchema = new mongoose_1.Schema({
         type: String,
         enum: ["Pending", "Interviewed", "Approved", "Rejected"],
         default: "Pending"
+    },
+    interviewDate: {
+        type: String,
+        default: ""
+    },
+    interviewTime: {
+        type: String,
+        default: ""
     }
 }, {
     timestamps: true

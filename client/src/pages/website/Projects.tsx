@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Navbar from "../../compoenets/Navbar";
+import Footer from "../../compoenets/Footer";
 import ProjectServices, { type Project } from "../../services/admin/ProjectServices";
 
 const ProjectCard = ({ project }: { project: Project }) => {
@@ -87,7 +88,7 @@ const ProjectCard = ({ project }: { project: Project }) => {
     );
 };
 
-export default function Projects() {
+export default function Projects({ showSplash }: { showSplash?: boolean }) {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -124,7 +125,7 @@ export default function Projects() {
             <div className="absolute top-[10%] right-[-10%] w-[50%] h-[50%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
             <div className="absolute bottom-[10%] left-[-10%] w-[50%] h-[50%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
 
-            <Navbar />
+            <Navbar showSplash={showSplash} />
 
             <main className="flex-1 z-10 pt-28 pb-16 px-6 md:px-[10%] flex flex-col items-center">
                 <section className="relative flex flex-col items-center text-white py-12 px-2 z-10 w-full max-w-7xl">
@@ -193,10 +194,7 @@ export default function Projects() {
                 </section>
             </main>
 
-            {/* Simple Footer */}
-            <footer className="z-10 py-8 border-t border-white/5 text-center bg-[#050505] text-[10px] text-[#666666] uppercase tracking-widest font-bold">
-                © {new Date().getFullYear()} HiveMind Sathyabama. All rights reserved.
-            </footer>
+            <Footer />
         </div>
     );
 }

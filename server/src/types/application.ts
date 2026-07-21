@@ -16,6 +16,8 @@ export interface Application {
     hoursPerWeek: number;
     howDidYouHear: string;
     status: "Pending" | "Interviewed" | "Approved" | "Rejected";
+    interviewDate?: string;
+    interviewTime?: string;
     createdAt?: string;
     updatedAt?: string;
 }

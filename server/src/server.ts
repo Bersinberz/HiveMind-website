@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
+import { seedDomainsAndTechnologies } from "./utils/seedMasterData";
 import authRoutes from "./routes/authRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import projectRoutes from "./routes/projectRoutes";
@@ -10,6 +11,8 @@ import applicationRoutes from "./routes/applicationRoutes";
 import communitySettingsRoutes from "./routes/communitySettingsRoutes";
 import masterDataRoutes from "./routes/masterDataRoutes";
 import telemetryRoutes from "./routes/telemetryRoutes";
+import domainRoutes from "./routes/domainRoutes";
+import technologyRoutes from "./routes/technologyRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -17,8 +20,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to Database
-connectDB();
+// Connect to Database & Seed Master Data
+connectDB().then(() => {
+    seedDomainsAndTechnologies();
+});
 
 // Middlewares
 app.use(
@@ -40,6 +45,8 @@ app.use("/api/v1/applications", applicationRoutes);
 app.use("/api/v1/community-settings", communitySettingsRoutes);
 app.use("/api/v1/master-data", masterDataRoutes);
 app.use("/api/v1/telemetry", telemetryRoutes);
+app.use("/api/v1/domains", domainRoutes);
+app.use("/api/v1/technologies", technologyRoutes);
 
 // Health Check Route
 app.get("/health", (req, res) => {

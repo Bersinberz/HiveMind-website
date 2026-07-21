@@ -15,8 +15,13 @@ export default function ApplicationsManagement() {
     const [loadingApps, setLoadingApps] = useState(false);
     const [selectedApp, setSelectedApp] = useState<Application | null>(null);
     const [appToDelete, setAppToDelete] = useState<string | null>(null);
-    const [applicationsSubTab, setApplicationsSubTab] = useState<"pending" | "accepted" | "rejected">("pending");
+    const [applicationsSubTab, setApplicationsSubTab] = useState<"pending" | "interviewed" | "accepted" | "rejected">("pending");
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+    // --- Interview Scheduling States ---
+    const [schedulingAppId, setSchedulingAppId] = useState<string | null>(null);
+    const [schedDate, setSchedDate] = useState("");
+    const [schedTime, setSchedTime] = useState("");
 
     const fetchApplications = async () => {
         setLoadingApps(true);
@@ -49,9 +54,14 @@ export default function ApplicationsManagement() {
             });
     }, [navigate]);
 
-    const handleUpdateStatus = async (id: string, status: Application["status"]) => {
+    const handleUpdateStatus = async (
+        id: string, 
+        status: Application["status"], 
+        interviewDate?: string, 
+        interviewTime?: string
+    ) => {
         try {
-            const res = await ApplicationServices.updateApplicationStatus(id, status);
+            const res = await ApplicationServices.updateApplicationStatus(id, status, interviewDate, interviewTime);
             if (res.success) {
                 fetchApplications();
             } else {
@@ -75,12 +85,14 @@ export default function ApplicationsManagement() {
         }
     };
 
-    const pendingApps = applications.filter(app => app.status !== "Approved" && app.status !== "Rejected");
+    const pendingApps = applications.filter(app => app.status === "Pending");
+    const interviewedApps = applications.filter(app => app.status === "Interviewed");
     const acceptedApps = applications.filter(app => app.status === "Approved");
     const rejectedApps = applications.filter(app => app.status === "Rejected");
     
     const activeList = 
         applicationsSubTab === "pending" ? pendingApps : 
+        applicationsSubTab === "interviewed" ? interviewedApps : 
         applicationsSubTab === "accepted" ? acceptedApps : 
         rejectedApps;
 
@@ -161,6 +173,16 @@ export default function ApplicationsManagement() {
                                         Pending Review ({pendingApps.length})
                                     </button>
                                     <button
+                                        onClick={() => setApplicationsSubTab("interviewed")}
+                                        className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer border-b-2 bg-transparent border-none ${
+                                            applicationsSubTab === "interviewed"
+                                                ? "border-gold-primary text-gold-primary"
+                                                : "border-transparent text-[#888888] hover:text-white"
+                                        }`}
+                                    >
+                                        Technical Discussion ({interviewedApps.length})
+                                    </button>
+                                    <button
                                         onClick={() => setApplicationsSubTab("accepted")}
                                         className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer border-b-2 bg-transparent border-none ${
                                             applicationsSubTab === "accepted"
@@ -217,6 +239,11 @@ export default function ApplicationsManagement() {
                                                         >
                                                             <span>{app.fullname}</span>
                                                             <span className="text-[10px] text-[#666666] font-normal font-sans">{app.email}</span>
+                                                            {app.status === "Interviewed" && app.interviewDate && (
+                                                                <span className="text-[9px] text-gold-primary mt-1 font-semibold uppercase tracking-wider">
+                                                                    Interview: {app.interviewDate} @ {app.interviewTime}
+                                                                </span>
+                                                            )}
                                                         </td>
                                                         <td className="py-3.5">{app.year} Year</td>
                                                         <td className="py-3.5 max-w-[120px] truncate">{app.domainOfInterest}</td>
@@ -238,6 +265,17 @@ export default function ApplicationsManagement() {
                                                                 View Form
                                                             </button>
                                                             {applicationsSubTab === "pending" ? (
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        setSchedulingAppId(app._id);
+                                                                        setSchedDate("");
+                                                                        setSchedTime("");
+                                                                    }}
+                                                                    className="bg-gold-primary hover:bg-[#D4AF37] text-black text-[9px] font-extrabold uppercase py-1.5 px-4 rounded-full cursor-pointer transition-colors"
+                                                                >
+                                                                    Schedule Interview
+                                                                </button>
+                                                            ) : applicationsSubTab === "interviewed" ? (
                                                                 <>
                                                                     <button 
                                                                         onClick={() => handleUpdateStatus(app._id, "Approved")}
@@ -390,6 +428,15 @@ export default function ApplicationsManagement() {
                                     </div>
                                 </div>
                             </div>
+                            
+                            {selectedApp.status === "Interviewed" && selectedApp.interviewDate && (
+                                <div className="col-span-1 sm:col-span-2 border-t border-white/5 pt-4">
+                                    <span className="text-[9px] font-bold text-gold-primary uppercase tracking-wider block">Technical Discussion Schedule</span>
+                                    <span className="text-white font-semibold">
+                                        {selectedApp.interviewDate} at {selectedApp.interviewTime} (Supercomputing Lab)
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Essay Question */}
                             <div className="col-span-1 sm:col-span-2 border-t border-white/5 pt-4 space-y-1.5">
@@ -446,6 +493,66 @@ export default function ApplicationsManagement() {
                                 className="bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/40 text-red-400 text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(239,68,68,0.05)]"
                             >
                                 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Interview Scheduling Modal */}
+            {schedulingAppId && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
+                    <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative animate-fade-in text-left">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white mb-2">
+                            Schedule Interview
+                        </h3>
+                        <p className="text-xs text-[#888888] leading-relaxed mb-6 uppercase tracking-wider font-semibold">
+                            Select date and time for the technical discussion at Supercomputing Lab. The candidate will receive an invitation email.
+                        </p>
+                        
+                        <div className="space-y-4 mb-6">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-bold text-[#9D9D9D] uppercase tracking-wider">Interview Date</label>
+                                <input
+                                    type="date"
+                                    required
+                                    className="bg-white/[0.02] border border-white/5 rounded-xl py-2.5 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors font-semibold"
+                                    value={schedDate}
+                                    onChange={(e) => setSchedDate(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-bold text-[#9D9D9D] uppercase tracking-wider">Interview Time</label>
+                                <input
+                                    type="time"
+                                    required
+                                    className="bg-white/[0.02] border border-white/5 rounded-xl py-2.5 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors font-semibold"
+                                    value={schedTime}
+                                    onChange={(e) => setSchedTime(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setSchedulingAppId(null)}
+                                className="bg-transparent border border-white/10 hover:border-white/20 text-white text-[10px] font-extrabold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!schedDate || !schedTime) {
+                                        alert("Please select both date and time.");
+                                        return;
+                                    }
+                                    const id = schedulingAppId;
+                                    setSchedulingAppId(null);
+                                    await handleUpdateStatus(id, "Interviewed", schedDate, schedTime);
+                                }}
+                                className="bg-gold-primary hover:bg-[#D4AF37] text-black text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(255,193,7,0.1)]"
+                            >
+                                Confirm & Invite
                             </button>
                         </div>
                     </div>

@@ -7,7 +7,9 @@ import Toast from "../../compoenets/Toast";
 import ProjectServices, { type Project } from "../../services/admin/ProjectServices";
 import axiosInstance from "../../services/axiosInstance";
 import AdminSidebar from "../../compoenets/AdminSidebar";
-import MasterDataServices, { type IMasterDataOption } from "../../services/admin/MasterDataServices";
+import DomainServices, { type DomainOption } from "../../services/admin/DomainServices";
+import TechnologyServices, { type TechnologyOption } from "../../services/admin/TechnologyServices";
+import CustomSingleSelect from "../../compoenets/CustomSingleSelect";
 
 // MultiSelect Dropdown Component
 function MultiSelect({
@@ -59,7 +61,7 @@ function MultiSelect({
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-                    <div className="absolute top-[100%] left-0 right-0 mt-1 bg-[#0c0c0e] border border-white/10 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto p-2 space-y-1">
+                    <div className="absolute top-[100%] left-0 right-0 mt-1 bg-[#0c0c0e] border border-white/10 rounded-lg shadow-2xl z-50 max-h-[148px] overflow-y-auto p-2 space-y-1">
                         {options.length === 0 ? (
                             <div className="p-2 text-center text-xs text-white/40 italic">
                                 No options found in Master Data.
@@ -93,6 +95,170 @@ function MultiSelect({
     );
 }
 
+interface ProjectTechSelectProps {
+    label: string;
+    allTechs: TechnologyOption[];
+    selectedDomainNames: string[];
+    selectedTechNames: string[];
+    onChange: (names: string[]) => void;
+    allDomains: DomainOption[];
+}
+
+function ProjectTechSelect({
+    label,
+    allTechs,
+    selectedDomainNames,
+    selectedTechNames,
+    onChange,
+    allDomains,
+}: ProjectTechSelectProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState("");
+
+    // Find the IDs of the selected domains
+    const selectedDomainIds = allDomains
+        .filter(dom => selectedDomainNames.includes(dom.name))
+        .map(dom => dom._id);
+
+    // Group technologies into suggested vs other active techs
+    const suggestedTechs = allTechs.filter(tech =>
+        tech.isActive && tech.domains.some(dom => selectedDomainIds.includes(dom._id))
+    );
+
+    const otherTechs = allTechs.filter(tech =>
+        tech.isActive && !tech.domains.some(dom => selectedDomainIds.includes(dom._id))
+    );
+
+    // Apply search filter
+    const searchFilter = (tech: TechnologyOption) =>
+        tech.name.toLowerCase().includes(search.toLowerCase());
+
+    const filteredSuggested = suggestedTechs.filter(searchFilter);
+    const filteredOthers = otherTechs.filter(searchFilter);
+
+    const toggleOption = (name: string) => {
+        if (selectedTechNames.includes(name)) {
+            onChange(selectedTechNames.filter(x => x !== name));
+        } else {
+            onChange([...selectedTechNames, name]);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-1.5 relative text-left">
+            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">{label}</label>
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-xs text-white cursor-pointer flex justify-between items-center select-none min-h-[38px]"
+            >
+                <div className="flex flex-wrap gap-1 max-w-[90%] truncate">
+                    {selectedTechNames.length === 0 ? (
+                        <span className="text-white/40">Select Tech Stack</span>
+                    ) : (
+                        selectedTechNames.map((val, idx) => (
+                            <span key={idx} className="bg-gold-primary/10 border border-gold-primary/20 text-gold-primary px-2 py-0.5 rounded text-[10px] font-bold">
+                                {val}
+                            </span>
+                        ))
+                    )}
+                </div>
+                <svg className={`w-4 h-4 text-white/40 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+                    <div className="absolute top-[100%] left-0 right-0 mt-1 bg-[#0c0c0e] border border-white/10 rounded-lg shadow-2xl z-50 max-h-[180px] overflow-y-auto p-2.5 space-y-2">
+                        {/* Search Input */}
+                        <div className="px-1 py-0.5">
+                            <input
+                                type="text"
+                                placeholder="Search technologies..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full bg-white/5 border border-white/10 rounded-md px-2.5 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-gold-primary/50"
+                            />
+                        </div>
+
+                        {/* Suggested Technologies */}
+                        {selectedDomainIds.length > 0 && (
+                            <div className="space-y-1">
+                                <div className="text-[9px] font-extrabold uppercase tracking-widest text-gold-primary/80 px-2 py-1 bg-gold-primary/5 rounded border border-gold-primary/10">
+                                    Suggested Technologies
+                                </div>
+                                {filteredSuggested.length === 0 ? (
+                                    <div className="text-[10px] text-white/20 italic px-2 py-1">No suggested technologies match search</div>
+                                ) : (
+                                    filteredSuggested.map(tech => {
+                                        const isChecked = selectedTechNames.includes(tech.name);
+                                        return (
+                                            <div
+                                                key={tech._id}
+                                                onClick={() => toggleOption(tech.name)}
+                                                className="flex items-center gap-2.5 px-2.5 py-1.5 hover:bg-white/5 rounded-md cursor-pointer transition-colors text-xs"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    readOnly
+                                                    className="accent-gold-primary h-3.5 w-3.5 rounded bg-black/40 border-white/10"
+                                                />
+                                                <span className={isChecked ? "text-gold-primary font-bold" : "text-white/80"}>
+                                                    {tech.name}
+                                                </span>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )}
+
+                        {/* All / Other Technologies */}
+                        <div className="space-y-1">
+                            <div className="text-[9px] font-extrabold uppercase tracking-widest text-[#888888] px-2 py-1 border-b border-white/5">
+                                {selectedDomainIds.length > 0 ? "Other Technologies" : "All Technologies"}
+                            </div>
+                            {filteredOthers.length === 0 ? (
+                                <div className="text-[10px] text-white/20 italic px-2 py-1">No other technologies found</div>
+                            ) : (
+                                filteredOthers.map(tech => {
+                                    const isChecked = selectedTechNames.includes(tech.name);
+                                    return (
+                                        <div
+                                            key={tech._id}
+                                            onClick={() => toggleOption(tech.name)}
+                                            className="flex items-center gap-2.5 px-2.5 py-1.5 hover:bg-white/5 rounded-md cursor-pointer transition-colors text-xs"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                readOnly
+                                                className="accent-gold-primary h-3.5 w-3.5 rounded bg-black/40 border-white/10"
+                                            />
+                                            <span className={isChecked ? "text-gold-primary font-bold" : "text-white/80"}>
+                                                {tech.name}
+                                            </span>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {allTechs.length === 0 && (
+                            <div className="p-2 text-center text-xs text-white/40 italic">
+                                No technologies found.
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 export default function ProjectsManagement() {
     const navigate = useNavigate();
     const [admin, setAdmin] = useState<AdminUser | null>(null);
@@ -108,7 +274,8 @@ export default function ProjectsManagement() {
     const [selectedDomain, setSelectedDomain] = useState("");
 
     // --- Master Data Options state ---
-    const [masterOptions, setMasterOptions] = useState<IMasterDataOption[]>([]);
+    const [domainsList, setDomainsList] = useState<DomainOption[]>([]);
+    const [techList, setTechList] = useState<TechnologyOption[]>([]);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -178,14 +345,20 @@ export default function ProjectsManagement() {
         setDragStart({ x: touch.clientX, y: touch.clientY });
     };
 
-    const fetchMasterData = async () => {
+    const fetchMasterAndNewData = async () => {
         try {
-            const res = await MasterDataServices.getMasterData();
-            if (res.success && res.data) {
-                setMasterOptions(res.data);
+            const [domRes, techRes] = await Promise.all([
+                DomainServices.getDomains(),
+                TechnologyServices.getTechnologies()
+            ]);
+            if (domRes.success && domRes.data) {
+                setDomainsList(domRes.data);
+            }
+            if (techRes.success && techRes.data) {
+                setTechList(techRes.data);
             }
         } catch (err) {
-            console.error("Error fetching master data:", err);
+            console.error("Error fetching master data inputs:", err);
         }
     };
 
@@ -213,7 +386,7 @@ export default function ProjectsManagement() {
                     setAdmin(data.admin);
                     setLoading(false);
                     fetchProjects();
-                    fetchMasterData();
+                    fetchMasterAndNewData();
                 } else {
                     navigate("/admin/login");
                 }
@@ -552,8 +725,7 @@ export default function ProjectsManagement() {
 
 
     const domains = Array.from(new Set(projects.flatMap(p => p.domain))).filter(Boolean);
-    const masterDomains = masterOptions.filter(o => o.category === "domain").map(o => o.value);
-    const masterTechStacks = masterOptions.filter(o => o.category === "techstack").map(o => o.value);
+    const masterDomains = domainsList.map(o => o.name);
 
     const filteredProjects = projects.filter(p => {
         const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -641,17 +813,18 @@ export default function ProjectsManagement() {
                                     </div>
 
                                     <div className="flex flex-col gap-1.5 col-span-2">
-                                        <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Domain</label>
-                                        <select
-                                            className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary cursor-pointer select-none"
+                                        <CustomSingleSelect
+                                            label="Domain"
+                                            bgClass="bg-[#0c0c0e] border border-white/10 py-2 px-3 text-xs h-[38px]"
+                                            dropdownBgClass="bg-[#0c0c0e]"
+                                            options={[
+                                                { value: "", label: "All Domains" },
+                                                ...domains.map(dom => ({ value: dom, label: dom }))
+                                            ]}
                                             value={selectedDomain}
-                                            onChange={(e) => setSelectedDomain(e.target.value)}
-                                        >
-                                            <option value="">All Domains</option>
-                                            {domains.map((dom, idx) => (
-                                                <option key={idx} value={dom}>{dom}</option>
-                                            ))}
-                                        </select>
+                                            onChange={setSelectedDomain}
+                                            placeholder="All Domains"
+                                        />
                                     </div>
                                 </div>
 
@@ -877,12 +1050,13 @@ export default function ProjectsManagement() {
                                                     onChange={(vals) => setFormValues({ ...formValues, domain: vals })}
                                                     placeholder="Select Domains"
                                                 />
-                                                <MultiSelect
+                                                <ProjectTechSelect
                                                     label="Tech Stack *"
-                                                    options={masterTechStacks}
-                                                    selected={formValues.techStack}
+                                                    allTechs={techList}
+                                                    selectedDomainNames={formValues.domain}
+                                                    selectedTechNames={formValues.techStack}
                                                     onChange={(vals) => setFormValues({ ...formValues, techStack: vals })}
-                                                    placeholder="Select Tech Stack"
+                                                    allDomains={domainsList}
                                                 />
                                             </div>
 

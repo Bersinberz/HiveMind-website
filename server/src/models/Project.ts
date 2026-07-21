@@ -23,6 +23,12 @@ const projectSchema = new Schema<IProject, ProjectModel>(
                 message: "Project domain must contain at least one domain",
             },
         },
+        domains: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Domain",
+            },
+        ],
         techStack: {
             type: [String],
             required: [true, "Tech stack is required"],
@@ -31,6 +37,12 @@ const projectSchema = new Schema<IProject, ProjectModel>(
                 message: "Tech stack must contain at least one technology",
             },
         },
+        technologies: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Technology",
+            },
+        ],
         github: {
             type: String,
             required: [true, "GitHub URL is required"],

@@ -7,6 +7,8 @@ import TeammanagemntServices, { type TeamMember } from "../../services/admin/Tea
 import axiosInstance from "../../services/axiosInstance";
 import MasterDataServices, { type IMasterDataOption } from "../../services/admin/MasterDataServices";
 import AdminSidebar from "../../compoenets/AdminSidebar";
+import CustomSingleSelect from "../../compoenets/CustomSingleSelect";
+import Portal from "../../compoenets/Portal";
 
 export default function TeamManagement() {
     const navigate = useNavigate();
@@ -155,6 +157,17 @@ export default function TeamManagement() {
             });
     }, [navigate]);
 
+    useEffect(() => {
+        if (isModalOpen || memberToDelete) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [isModalOpen, memberToDelete]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -271,7 +284,7 @@ export default function TeamManagement() {
                     const formData = new FormData();
                     formData.append("file", base64);
                     formData.append("upload_preset", UPLOAD_PRESET);
-                    formData.append("folder", "HiveMind/Team images");
+                    formData.append("folder", "Team images");
 
                     const res = await axios.post(
                         `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
@@ -478,7 +491,7 @@ export default function TeamManagement() {
             />
 
             {/* MAIN WORKSPACE */}
-            <div className="flex-1 flex flex-col min-w-0 z-10 overflow-y-auto">
+            <div className={`flex-1 flex flex-col min-w-0 z-10 ${isModalOpen || memberToDelete ? "overflow-hidden" : "overflow-y-auto"}`}>
                 {/* Mobile Top Header */}
                 <header className="lg:hidden flex justify-between items-center bg-white/[0.02] border-b border-white/5 p-4 shadow-md backdrop-blur-md sticky top-0 z-30">
                     <div className="flex items-center gap-3">
@@ -537,46 +550,51 @@ export default function TeamManagement() {
                                     </div>
 
                                     <div className="flex flex-col gap-1.5 col-span-1">
-                                        <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Department</label>
-                                        <select
-                                            className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary cursor-pointer select-none"
+                                        <CustomSingleSelect
+                                            label="Department"
+                                            bgClass="bg-[#0c0c0e] border border-white/10 py-2 px-3 text-xs h-[38px]"
+                                            dropdownBgClass="bg-[#0c0c0e]"
+                                            options={[
+                                                { value: "", label: "All Departments" },
+                                                ...departments.map(dept => ({ value: dept, label: dept }))
+                                            ]}
                                             value={selectedDept}
-                                            onChange={(e) => setSelectedDept(e.target.value)}
-                                        >
-                                            <option value="">All Departments</option>
-                                            {departments.map((dept, idx) => (
-                                                <option key={idx} value={dept}>{dept}</option>
-                                            ))}
-                                        </select>
+                                            onChange={setSelectedDept}
+                                            placeholder="All Departments"
+                                        />
                                     </div>
 
                                     <div className="flex flex-col gap-1.5 col-span-1">
-                                        <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Year</label>
-                                        <select
-                                            className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary cursor-pointer select-none"
+                                        <CustomSingleSelect
+                                            label="Year"
+                                            bgClass="bg-[#0c0c0e] border border-white/10 py-2 px-3 text-xs h-[38px]"
+                                            dropdownBgClass="bg-[#0c0c0e]"
+                                            options={[
+                                                { value: "", label: "All Years" },
+                                                { value: "1st", label: "1st Year" },
+                                                { value: "2nd", label: "2nd Year" },
+                                                { value: "3rd", label: "3rd Year" },
+                                                { value: "4th", label: "4th Year" }
+                                            ]}
                                             value={selectedYear}
-                                            onChange={(e) => setSelectedYear(e.target.value)}
-                                        >
-                                            <option value="">All Years</option>
-                                            <option value="1st">1st Year</option>
-                                            <option value="2nd">2nd Year</option>
-                                            <option value="3rd">3rd Year</option>
-                                            <option value="4th">4th Year</option>
-                                        </select>
+                                            onChange={setSelectedYear}
+                                            placeholder="All Years"
+                                        />
                                     </div>
 
                                     <div className="flex flex-col gap-1.5 col-span-1">
-                                        <label className="text-[9px] font-bold text-[#888888] uppercase tracking-wider">Batch</label>
-                                        <select
-                                            className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2 px-3 text-white text-xs focus:outline-none focus:border-gold-primary cursor-pointer select-none"
+                                        <CustomSingleSelect
+                                            label="Batch"
+                                            bgClass="bg-[#0c0c0e] border border-white/10 py-2 px-3 text-xs h-[38px]"
+                                            dropdownBgClass="bg-[#0c0c0e]"
+                                            options={[
+                                                { value: "", label: "All Batches" },
+                                                ...batches.map(batch => ({ value: batch, label: batch }))
+                                            ]}
                                             value={selectedBatch}
-                                            onChange={(e) => setSelectedBatch(e.target.value)}
-                                        >
-                                            <option value="">All Batches</option>
-                                            {batches.map((batch, idx) => (
-                                                <option key={idx} value={batch}>{batch}</option>
-                                            ))}
-                                        </select>
+                                            onChange={setSelectedBatch}
+                                            placeholder="All Batches"
+                                        />
                                     </div>
                                 </div>
 
@@ -599,9 +617,8 @@ export default function TeamManagement() {
                                             return (
                                                 <div
                                                     key={member._id}
-                                                    className={`bg-white/[0.01] border ${
-                                                        isExpanded ? "border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.4)] bg-white/[0.02]" : "border-white/5"
-                                                    } rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:bg-white/[0.015] hover:border-white/10`}
+                                                    className={`bg-white/[0.01] border ${isExpanded ? "border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.4)] bg-white/[0.02]" : "border-white/5"
+                                                        } rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:bg-white/[0.015] hover:border-white/10`}
                                                 >
                                                     {/* Card Header (clickable to expand/collapse) */}
                                                     <div
@@ -749,273 +766,268 @@ export default function TeamManagement() {
 
             {/* Modals: Crop Upload / Form Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[9999] p-4 overflow-y-auto">
-                    <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-fade-in">
-                        {isUploading ? (
-                            <div className="flex flex-col items-center justify-center py-12 px-6 text-center select-none animate-fade-in">
-                                <div className="w-14 h-14 rounded-full border-2 border-white/5 border-t-gold-primary animate-spin mb-6" />
-                                <h4 className="text-sm font-black uppercase tracking-widest text-white mb-2">
-                                    Uploading Photo
-                                </h4>
-                                <div className="w-full max-w-xs bg-white/5 h-1.5 rounded-full overflow-hidden mb-3">
-                                    <div
-                                        className="bg-gradient-to-r from-gold-primary to-gold-light h-full transition-all duration-300 ease-out"
-                                        style={{ width: `${uploadProgress}%` }}
-                                    />
-                                </div>
-                                <span className="text-[11px] font-bold text-gold-primary uppercase tracking-wider">
-                                    {uploadProgress}% Complete
-                                </span>
-                            </div>
-                        ) : isCropping && cropSrc ? (
-                            renderCropperWorkspace()
-                        ) : (
-                            <>
-                                <h3 className="text-lg font-black uppercase tracking-wider text-white mb-6">
-                                    {modalMode === "add" ? "Add Team Member" : "Edit Team Member"}
-                                </h3>
-
-                                {modalError && (
-                                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl p-3 mb-4">
-                                        {modalError}
-                                    </div>
-                                )}
-
-                                <form onSubmit={handleModalSubmit} className="space-y-4 text-left">
-                                    <div className="flex flex-col items-center justify-center gap-3 w-full mb-4">
-                                        <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider block text-center">Profile Picture</label>
-
+                <Portal>
+                    <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-start justify-center z-[9999] p-4 overflow-y-auto pt-10 md:pt-16">
+                        <div className={`bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-fade-in ${(isUploading || isCropping) ? "max-w-xl" : "max-w-3xl"
+                            }`}>
+                            {isUploading ? (
+                                <div className="flex flex-col items-center justify-center py-12 px-6 text-center select-none animate-fade-in">
+                                    <div className="w-14 h-14 rounded-full border-2 border-white/5 border-t-gold-primary animate-spin mb-6" />
+                                    <h4 className="text-sm font-black uppercase tracking-widest text-white mb-2">
+                                        Uploading Photo
+                                    </h4>
+                                    <div className="w-full max-w-xs bg-white/5 h-1.5 rounded-full overflow-hidden mb-3">
                                         <div
-                                            className="relative w-24 h-28 p-[1.5px] bg-gradient-to-br from-gold-primary/30 to-gold-primary/80 flex-shrink-0"
-                                            style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
-                                        >
-                                            <div
-                                                className="relative w-full h-full bg-white/[0.02] overflow-hidden flex items-center justify-center"
-                                                style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
-                                            >
-                                                {formValues.pic ? (
-                                                    <img src={formValues.pic} alt="Preview" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/20">
-                                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                                        <circle cx="12" cy="7" r="4" />
-                                                    </svg>
-                                                )}
+                                            className="bg-gradient-to-r from-gold-primary to-gold-light h-full transition-all duration-300 ease-out"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-[11px] font-bold text-gold-primary uppercase tracking-wider">
+                                        {uploadProgress}% Complete
+                                    </span>
+                                </div>
+                            ) : isCropping && cropSrc ? (
+                                renderCropperWorkspace()
+                            ) : (
+                                <>
+                                    <h3 className="text-lg font-black uppercase tracking-wider text-white mb-6">
+                                        {modalMode === "add" ? "Add Team Member" : "Edit Team Member"}
+                                    </h3>
+
+                                    {modalError && (
+                                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl p-3 mb-4">
+                                            {modalError}
+                                        </div>
+                                    )}
+
+                                    <form onSubmit={handleModalSubmit} className="space-y-4 text-left">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Left Column: Profile Picture & Social Profiles */}
+                                            <div className="space-y-4">
+                                                <div className="flex flex-col items-center justify-center gap-3 w-full mb-2">
+                                                    <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider block text-center">Profile Picture</label>
+
+                                                    <div
+                                                        className="relative w-24 h-28 p-[1.5px] bg-gradient-to-br from-gold-primary/30 to-gold-primary/80 flex-shrink-0"
+                                                        style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                                                    >
+                                                        <div
+                                                            className="relative w-full h-full bg-white/[0.02] overflow-hidden flex items-center justify-center"
+                                                            style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                                                        >
+                                                            {formValues.pic ? (
+                                                                <img src={formValues.pic} alt="Preview" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/20">
+                                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                                    <circle cx="12" cy="7" r="4" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3 justify-center w-full">
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            id="pic-upload"
+                                                            onChange={handleFileChange}
+                                                        />
+                                                        <label
+                                                            htmlFor="pic-upload"
+                                                            className="bg-white/5 border border-white/10 hover:border-gold-primary/30 text-white text-[10px] font-bold uppercase py-2 px-5 rounded-lg cursor-pointer transition-colors block text-center"
+                                                        >
+                                                            Upload Photo
+                                                        </label>
+                                                        {formValues.pic && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    const urlToDelete = formValues.pic;
+                                                                    setFormValues({ ...formValues, pic: "" });
+                                                                    await deleteImageFromCloudinary(urlToDelete);
+                                                                }}
+                                                                className="text-red-400 text-[10px] font-bold uppercase hover:underline focus:outline-none bg-transparent border-none cursor-pointer"
+                                                            >
+                                                                Remove Photo
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">LinkedIn Profile URL</label>
+                                                    <input
+                                                        type="url"
+                                                        placeholder="https://linkedin.com/in/..."
+                                                        className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                        value={formValues.Linkedin}
+                                                        onChange={(e) => setFormValues({ ...formValues, Linkedin: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">GitHub Profile URL</label>
+                                                    <input
+                                                        type="url"
+                                                        placeholder="https://github.com/..."
+                                                        className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                        value={formValues.github}
+                                                        onChange={(e) => setFormValues({ ...formValues, github: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Right Column: Personal & Academic Details */}
+                                            <div className="space-y-4">
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Full Name *</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                        value={formValues.fullname}
+                                                        onChange={(e) => setFormValues({ ...formValues, fullname: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Register Number *</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        placeholder="e.g. 211422104001"
+                                                        className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                        value={formValues.registerNumber}
+                                                        onChange={(e) => setFormValues({ ...formValues, registerNumber: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Email Address *</label>
+                                                    <input
+                                                        type="email"
+                                                        required
+                                                        className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
+                                                        value={formValues.email}
+                                                        onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <CustomSingleSelect
+                                                        label="Department"
+                                                        required
+                                                        bgClass="bg-[#0c0c0e] border border-white/10 py-2.5 px-3 text-xs h-[42px]"
+                                                        dropdownBgClass="bg-[#0c0c0e]"
+                                                        options={masterOptions.filter(o => o.category === "department").map(o => ({ value: o.value, label: o.value }))}
+                                                        value={formValues.department}
+                                                        onChange={(val) => setFormValues({ ...formValues, department: val })}
+                                                        placeholder="Select Department"
+                                                    />
+                                                    <CustomSingleSelect
+                                                        label="Section"
+                                                        required
+                                                        bgClass="bg-[#0c0c0e] border border-white/10 py-2.5 px-3 text-xs h-[42px]"
+                                                        dropdownBgClass="bg-[#0c0c0e]"
+                                                        options={masterOptions.filter(o => o.category === "section").map(o => ({ value: o.value, label: o.value }))}
+                                                        value={formValues.section}
+                                                        onChange={(val) => setFormValues({ ...formValues, section: val })}
+                                                        placeholder="Select Section"
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <CustomSingleSelect
+                                                        label="Year"
+                                                        required
+                                                        bgClass="bg-[#0c0c0e] border border-white/10 py-2.5 px-3 text-xs h-[42px]"
+                                                        dropdownBgClass="bg-[#0c0c0e]"
+                                                        options={masterOptions.filter(o => o.category === "year").map(o => ({ value: o.value, label: `${o.value} Year` }))}
+                                                        value={formValues.year}
+                                                        onChange={(val) => setFormValues({ ...formValues, year: val as any })}
+                                                        placeholder="Select Year"
+                                                    />
+                                                    <CustomSingleSelect
+                                                        label="Batch"
+                                                        required
+                                                        bgClass="bg-[#0c0c0e] border border-white/10 py-2.5 px-3 text-xs h-[42px]"
+                                                        dropdownBgClass="bg-[#0c0c0e]"
+                                                        options={masterOptions.filter(o => o.category === "batch").map(o => ({ value: o.value, label: o.value }))}
+                                                        value={formValues.batch}
+                                                        onChange={(val) => setFormValues({ ...formValues, batch: val })}
+                                                        placeholder="Select Batch"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3 justify-center w-full">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                id="pic-upload"
-                                                onChange={handleFileChange}
-                                            />
-                                            <label
-                                                htmlFor="pic-upload"
-                                                className="bg-white/5 border border-white/10 hover:border-gold-primary/30 text-white text-[10px] font-bold uppercase py-2 px-5 rounded-lg cursor-pointer transition-colors block text-center"
+                                        <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsModalOpen(false)}
+                                                className="bg-transparent border border-white/10 hover:border-white/20 text-white text-xs font-bold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all"
                                             >
-                                                Upload Photo
-                                            </label>
-                                            {formValues.pic && (
-                                                <button
-                                                    type="button"
-                                                    onClick={async () => {
-                                                        const urlToDelete = formValues.pic;
-                                                        setFormValues({ ...formValues, pic: "" });
-                                                        await deleteImageFromCloudinary(urlToDelete);
-                                                    }}
-                                                    className="text-red-400 text-[10px] font-bold uppercase hover:underline focus:outline-none bg-transparent border-none cursor-pointer"
-                                                >
-                                                    Remove Photo
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Full Name *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.fullname}
-                                                onChange={(e) => setFormValues({ ...formValues, fullname: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Register Number *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="e.g. 211422104001"
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.registerNumber}
-                                                onChange={(e) => setFormValues({ ...formValues, registerNumber: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Email Address *</label>
-                                        <input
-                                            type="email"
-                                            required
-                                            className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                            value={formValues.email}
-                                            onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Department *</label>
-                                            <select
-                                                required
-                                                className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.department}
-                                                onChange={(e) => setFormValues({ ...formValues, department: e.target.value })}
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black text-xs font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(255,193,7,0.2)] hover:shadow-[0_6px_20px_rgba(255,193,7,0.3)]"
                                             >
-                                                <option value="">Select Department</option>
-                                                {masterOptions.filter(o => o.category === "department").map(o => (
-                                                    <option key={o._id} value={o.value}>{o.value}</option>
-                                                ))}
-                                            </select>
+                                                {modalMode === "add" ? "Save Member" : "Update Member"}
+                                            </button>
                                         </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Section *</label>
-                                            <select
-                                                required
-                                                className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.section}
-                                                onChange={(e) => setFormValues({ ...formValues, section: e.target.value })}
-                                            >
-                                                <option value="">Select Section</option>
-                                                {masterOptions.filter(o => o.category === "section").map(o => (
-                                                    <option key={o._id} value={o.value}>{o.value}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Year *</label>
-                                            <select
-                                                required
-                                                className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.year}
-                                                onChange={(e) => setFormValues({ ...formValues, year: e.target.value as any })}
-                                            >
-                                                <option value="">Select Year</option>
-                                                {masterOptions.filter(o => o.category === "year").map(o => (
-                                                    <option key={o._id} value={o.value}>{o.value} Year</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">Batch *</label>
-                                            <select
-                                                required
-                                                className="bg-[#0c0c0e] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.batch}
-                                                onChange={(e) => setFormValues({ ...formValues, batch: e.target.value })}
-                                            >
-                                                <option value="">Select Batch</option>
-                                                {masterOptions.filter(o => o.category === "batch").map(o => (
-                                                    <option key={o._id} value={o.value}>{o.value}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">LinkedIn Profile URL</label>
-                                            <input
-                                                type="url"
-                                                placeholder="https://linkedin.com/in/..."
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.Linkedin}
-                                                onChange={(e) => setFormValues({ ...formValues, Linkedin: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wider">GitHub Profile URL</label>
-                                            <input
-                                                type="url"
-                                                placeholder="https://github.com/..."
-                                                className="bg-white/[0.02] border border-white/10 rounded-lg py-2.5 px-3 text-white text-xs focus:outline-none focus:border-gold-primary"
-                                                value={formValues.github}
-                                                onChange={(e) => setFormValues({ ...formValues, github: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsModalOpen(false)}
-                                            className="bg-transparent border border-white/10 hover:border-white/20 text-white text-xs font-bold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black text-xs font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(255,193,7,0.2)] hover:shadow-[0_6px_20px_rgba(255,193,7,0.3)]"
-                                        >
-                                            {modalMode === "add" ? "Save Member" : "Update Member"}
-                                        </button>
-                                    </div>
-                                </form>
-                            </>
-                        )}
+                                    </form>
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </Portal>
             )}
 
             {/* Custom Delete Confirmation Modal */}
             {memberToDelete && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
-                    <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-fade-in">
-                        <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                <line x1="10" y1="11" x2="10" y2="17" />
-                                <line x1="14" y1="11" x2="14" y2="17" />
-                            </svg>
-                        </div>
-                        
-                        <h3 className="text-sm font-black uppercase tracking-widest text-white mb-2">
-                            Confirm Deletion
-                        </h3>
-                        <p className="text-xs text-[#888888] leading-relaxed mb-6 uppercase tracking-wider font-semibold">
-                            Are you sure you want to delete this team member? This action is permanent and cannot be undone.
-                        </p>
-                        
-                        <div className="flex justify-center gap-3">
-                            <button
-                                onClick={() => setMemberToDelete(null)}
-                                className="bg-transparent border border-white/10 hover:border-white/20 text-white text-[10px] font-extrabold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    const id = memberToDelete;
-                                    setMemberToDelete(null);
-                                    await executeDeleteMember(id);
-                                }}
-                                className="bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/40 text-red-400 text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(239,68,68,0.05)]"
-                            >
-                                Delete
-                            </button>
+                <Portal>
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
+                        <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-fade-in">
+                            <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    <line x1="10" y1="11" x2="10" y2="17" />
+                                    <line x1="14" y1="11" x2="14" y2="17" />
+                                </svg>
+                            </div>
+
+                            <h3 className="text-sm font-black uppercase tracking-widest text-white mb-2">
+                                Confirm Deletion
+                            </h3>
+                            <p className="text-xs text-[#888888] leading-relaxed mb-6 uppercase tracking-wider font-semibold">
+                                Are you sure you want to delete this team member? This action is permanent and cannot be undone.
+                            </p>
+
+                            <div className="flex justify-center gap-3">
+                                <button
+                                    onClick={() => setMemberToDelete(null)}
+                                    className="bg-transparent border border-white/10 hover:border-white/20 text-white text-[10px] font-extrabold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        const id = memberToDelete;
+                                        setMemberToDelete(null);
+                                        await executeDeleteMember(id);
+                                    }}
+                                    className="bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/40 text-red-400 text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(239,68,68,0.05)]"
+                                >
+                                    Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
         </div>
     );

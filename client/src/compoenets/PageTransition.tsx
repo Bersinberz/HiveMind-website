@@ -2,19 +2,23 @@ import { type ReactNode, useEffect, useState } from "react";
 
 interface PageTransitionProps {
     children: ReactNode;
+    deferUntil?: boolean;
 }
 
-export default function PageTransition({ children }: PageTransitionProps) {
+export default function PageTransition({ children, deferUntil = false }: PageTransitionProps) {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        // Trigger mounting animation on render
-        const timer = setTimeout(() => {
-            setIsMounted(true);
-        }, 100);
+        if (!deferUntil) {
+            const timer = setTimeout(() => {
+                setIsMounted(true);
+            }, 100);
 
-        return () => clearTimeout(timer);
-    }, []);
+            return () => clearTimeout(timer);
+        } else {
+            setIsMounted(false);
+        }
+    }, [deferUntil]);
 
     return (
         <div

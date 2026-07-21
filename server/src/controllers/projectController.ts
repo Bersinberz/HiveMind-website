@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
 import Project from "../models/Project";
+import Domain from "../models/Domain";
+import Technology from "../models/Technology";
 import { deleteFromCloudinary } from "../utils/cloudinary";
+ 
+const escapeRegex = (str: string) => {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 
 const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
 
@@ -63,11 +69,24 @@ export const createProject = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Please provide a valid Live Demo URL." });
         }
 
+        // Resolve Domain and Technology ObjectIds
+        const domainObjects = await Domain.find({
+            name: { $in: domainParsed.map(d => new RegExp(`^${escapeRegex(d)}$`, "i")) }
+        });
+        const domainIds = domainObjects.map(d => d._id);
+
+        const techObjects = await Technology.find({
+            name: { $in: techStackParsed.map(t => new RegExp(`^${escapeRegex(t)}$`, "i")) }
+        });
+        const techIds = techObjects.map(t => t._id);
+
         const newProject = new Project({
             title: title.trim(),
             description: description.trim(),
             domain: domainParsed,
+            domains: domainIds,
             techStack: techStackParsed,
+            technologies: techIds,
             github: github.trim(),
             liveDemo: liveDemo ? liveDemo.trim() : "",
             thumbnail,
@@ -125,6 +144,11 @@ export const updateProject = async (req: Request, res: Response) => {
                 return res.status(400).json({ success: false, message: "Please select at least one domain." });
             }
             project.domain = domainParsed;
+
+            const domainObjects = await Domain.find({
+                name: { $in: domainParsed.map(d => new RegExp(`^${escapeRegex(d)}$`, "i")) }
+            });
+            project.domains = domainObjects.map(d => d._id);
         }
 
         if (techStack !== undefined) {
@@ -138,6 +162,11 @@ export const updateProject = async (req: Request, res: Response) => {
                 return res.status(400).json({ success: false, message: "Please provide a valid tech stack with at least one technology." });
             }
             project.techStack = techStackParsed;
+
+            const techObjects = await Technology.find({
+                name: { $in: techStackParsed.map(t => new RegExp(`^${escapeRegex(t)}$`, "i")) }
+            });
+            project.technologies = techObjects.map(t => t._id);
         }
 
         if (github !== undefined) {

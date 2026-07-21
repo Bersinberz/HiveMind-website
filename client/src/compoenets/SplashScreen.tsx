@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import axiosInstance from "../services/axiosInstance";
 
 interface SplashScreenProps {
     onComplete: () => void;
@@ -8,6 +9,19 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     const [logoVisible, setLogoVisible] = useState(false);
     const [revealText, setRevealText] = useState(false);
     const [fadeOut, setFadeOut] = useState(false);
+    const [communityName, setCommunityName] = useState("HIVEMIND");
+
+    useEffect(() => {
+        axiosInstance.get("/v1/community-settings")
+            .then(res => {
+                if (res.data && res.data.success && res.data.settings?.communityName) {
+                    setCommunityName(res.data.settings.communityName);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load community settings in splash screen:", err);
+            });
+    }, []);
 
     // ==========================================
     // BODY SCROLL LOCK
@@ -88,11 +102,11 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
                     {/* Text reveal wrapper */}
                     <div
                         className={`overflow-hidden transition-all duration-1000 ease-out flex items-center ${
-                            revealText ? "max-w-[400px] opacity-100" : "max-w-0 opacity-0"
+                            revealText ? "max-w-[600px] opacity-100" : "max-w-0 opacity-0"
                         }`}
                     >
                         <span className="text-2xl md:text-4xl font-extrabold uppercase tracking-widest select-none whitespace-nowrap pl-1 text-gold-sweep drop-shadow-[0_0_15px_rgba(255,193,7,0.35)]">
-                            HIVEMIND
+                            {communityName}
                         </span>
                     </div>
                 </div>

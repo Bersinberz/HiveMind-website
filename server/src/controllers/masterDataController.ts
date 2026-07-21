@@ -57,6 +57,26 @@ export const getMasterData = async (req: AuthRequest, res: Response) => {
             // Seed defaults if empty
             await MasterData.insertMany(DEFAULT_MASTER_DATA);
         }
+
+        const langCount = await MasterData.countDocuments({ category: "programming_language" });
+        if (langCount === 0) {
+            const languages = [
+                { category: "programming_language", value: "Python" },
+                { category: "programming_language", value: "JavaScript" },
+                { category: "programming_language", value: "TypeScript" },
+                { category: "programming_language", value: "C++" },
+                { category: "programming_language", value: "Java" },
+                { category: "programming_language", value: "Go" },
+                { category: "programming_language", value: "Rust" },
+                { category: "programming_language", value: "C#" },
+                { category: "programming_language", value: "PHP" },
+                { category: "programming_language", value: "Swift" },
+                { category: "programming_language", value: "Kotlin" },
+                { category: "programming_language", value: "Ruby" }
+            ];
+            await MasterData.insertMany(languages);
+        }
+
         const data = await MasterData.find().sort({ category: 1, value: 1 });
         return res.status(200).json({
             success: true,

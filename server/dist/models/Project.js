@@ -22,6 +22,12 @@ const projectSchema = new mongoose_1.Schema({
             message: "Project domain must contain at least one domain",
         },
     },
+    domains: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "Domain",
+        },
+    ],
     techStack: {
         type: [String],
         required: [true, "Tech stack is required"],
@@ -30,6 +36,12 @@ const projectSchema = new mongoose_1.Schema({
             message: "Tech stack must contain at least one technology",
         },
     },
+    technologies: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "Technology",
+        },
+    ],
     github: {
         type: String,
         required: [true, "GitHub URL is required"],

@@ -7,8 +7,8 @@ const masterDataSchema = new Schema<IMasterData, MasterDataModel>(
             type: String,
             required: [true, "Category is required"],
             enum: {
-                values: ["department", "section", "batch", "year", "domain", "techstack"],
-                message: "Category must be department, section, batch, year, domain, or techstack"
+                values: ["department", "section", "batch", "year", "domain", "techstack", "programming_language"],
+                message: "Category must be department, section, batch, year, domain, techstack, or programming_language"
             }
         },
         value: {

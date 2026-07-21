@@ -1,26 +1,93 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../../compoenets/Navbar";
+import Footer from "../../compoenets/Footer";
 import Toast from "../../compoenets/Toast";
 import ApplicationServices from "../../services/admin/ApplicationServices";
 import axiosInstance from "../../services/axiosInstance";
 import MasterDataServices, { type IMasterDataOption } from "../../services/admin/MasterDataServices";
 import CommunitySettingsServices from "../../services/admin/CommunitySettingsServices";
-
-// Honeycomb background pattern
-function HoneycombPattern({ className = "opacity-[0.08]" }: { className?: string }) {
+import DomainServices, { type DomainOption } from "../../services/admin/DomainServices";
+import CustomSingleSelect from "../../compoenets/CustomSingleSelect";
+ 
+function DomainMultiSelect({
+    label,
+    domains,
+    selectedNames,
+    onChange,
+}: {
+    label: string;
+    domains: DomainOption[];
+    selectedNames: string[];
+    onChange: (names: string[]) => void;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+ 
+    const toggleOption = (name: string) => {
+        if (selectedNames.includes(name)) {
+            onChange(selectedNames.filter(x => x !== name));
+        } else {
+            onChange([...selectedNames, name]);
+        }
+    };
+ 
     return (
-        <svg className={`absolute inset-0 w-full h-full pointer-events-none z-0 ${className}`} xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <pattern id="honeycomb" width="56" height="97" patternUnits="userSpaceOnUse" patternTransform="scale(1.2)">
-                    <path d="M28 0 L56 16 L56 48 L28 64 L0 48 L0 16 Z M28 97 L56 81 L56 49 L28 33 L0 49 L0 81 Z" fill="none" stroke="currentColor" strokeWidth="1" className="text-white" />
-                </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#honeycomb)" />
-        </svg>
+        <div className="flex flex-col gap-2 relative text-left">
+            <label className="text-[10px] font-bold text-[#9D9D9D] uppercase tracking-wider">{label}</label>
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4 text-xs text-white cursor-pointer flex justify-between items-center select-none min-h-[42px]"
+            >
+                <div className="flex flex-wrap gap-1 max-w-[90%] truncate">
+                    {selectedNames.length === 0 ? (
+                        <span className="text-white/40">Select Domains of Interest</span>
+                    ) : (
+                        selectedNames.map((val, idx) => (
+                            <span key={idx} className="bg-gold-primary/10 border border-gold-primary/20 text-gold-primary px-2.5 py-1 rounded text-[10px] font-bold">
+                                {val}
+                            </span>
+                        ))
+                    )}
+                </div>
+                <svg className={`w-4 h-4 text-white/40 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+ 
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+                    <div className="absolute top-[100%] left-0 right-0 mt-1 bg-[#171717] border border-white/10 rounded-xl shadow-2xl z-50 max-h-[148px] overflow-y-auto p-2 space-y-1">
+                        {domains.filter(d => d.isActive).map(dom => {
+                            const isChecked = selectedNames.includes(dom.name);
+                            return (
+                                <div
+                                    key={dom._id}
+                                    onClick={() => toggleOption(dom.name)}
+                                    className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors text-xs"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        readOnly
+                                        className="accent-gold-primary h-3.5 w-3.5 rounded bg-black/40 border-white/10"
+                                    />
+                                    <span className={isChecked ? "text-gold-primary font-bold" : "text-white/80"}>
+                                        {dom.name}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
+        </div>
     );
 }
+
+
 
 // Neural Network connecting lines background
 function NeuralNetworkLines() {
@@ -66,28 +133,28 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
     return (
         <motion.div
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.3 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
         >
             <motion.span
-                className="text-[9px] font-bold text-gold-primary uppercase tracking-[0.3em] block mb-2"
+                className="text-xs font-bold text-gold-primary uppercase tracking-[0.3em] block mb-3 [text-shadow:0_0_10px_rgba(255,193,7,0.3)]"
                 initial={{ opacity: 0, letterSpacing: "0.1em" }}
                 whileInView={{ opacity: 1, letterSpacing: "0.3em" }}
-                viewport={{ once: false, amount: 0.3 }}
+                viewport={{ once: false, amount: 0.2 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
             >
                 {eyebrow}
             </motion.span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white uppercase tracking-wider">
+            <h2 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-wide bg-gradient-to-r from-white via-white to-gold-light bg-clip-text text-transparent">
                 {title}
             </h2>
             <motion.div
                 className="mx-auto mt-4 h-[1px] bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent"
                 initial={{ width: 0 }}
                 whileInView={{ width: "180px" }}
-                viewport={{ once: false, amount: 0.3 }}
+                viewport={{ once: false, amount: 0.2 }}
                 transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             />
         </motion.div>
@@ -132,13 +199,28 @@ function FAQItem({ question, answer, isOpen, onClick }: { question: string; answ
     );
 }
 
-export default function JoinHiveMind() {
+export default function JoinHiveMind({ showSplash }: { showSplash?: boolean }) {
+    const navigate = useNavigate();
+    const cardVariants = {
+        hidden: { opacity: 0, y: 40 },
+        visible: (custom: number) => ({
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.8,
+                delay: custom * 0.15,
+                ease: "easeOut" as const
+            }
+        })
+    };
+
     const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [masterOptions, setMasterOptions] = useState<IMasterDataOption[]>([]);
+    const [domainsList, setDomainsList] = useState<DomainOption[]>([]);
     const [acceptingApplications, setAcceptingApplications] = useState(true);
     const [openFAQIndex, setOpenFAQIndex] = useState<number | null>(null);
 
@@ -151,6 +233,16 @@ export default function JoinHiveMind() {
             })
             .catch(err => {
                 console.error("Failed to load master data:", err);
+            });
+
+        DomainServices.getDomains()
+            .then(res => {
+                if (res.success && res.data) {
+                    setDomainsList(res.data);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load domains:", err);
             });
 
         CommunitySettingsServices.getSettings()
@@ -216,7 +308,7 @@ export default function JoinHiveMind() {
                 formData.append("folder", "Resumes");
 
                 const res = await axios.post(
-                    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+                    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`,
                     formData,
                     {
                         headers: { "Content-Type": "multipart/form-data" },
@@ -271,6 +363,14 @@ export default function JoinHiveMind() {
             setToast({ message: "Please explain in detail why you want to join HiveMind.", type: "error" });
             return;
         }
+        if (!formValues.domainOfInterest.trim()) {
+            setToast({ message: "Please select at least one domain of interest.", type: "error" });
+            return;
+        }
+        if (!formValues.programmingLanguages.trim()) {
+            setToast({ message: "Please select at least one programming language.", type: "error" });
+            return;
+        }
         if (formValues.hoursPerWeek < 1) {
             setToast({ message: "Please contribute at least 1 hour per week.", type: "error" });
             return;
@@ -310,16 +410,14 @@ export default function JoinHiveMind() {
         document.getElementById("application-form")?.scrollIntoView({ behavior: "smooth" });
     };
 
-    const handleScrollToWhy = () => {
-        document.getElementById("why-join")?.scrollIntoView({ behavior: "smooth" });
-    };
+
 
     const whyJoinCards = [
         {
             title: "Real Projects",
             desc: "Build production-ready AI systems with real impact. Implement and train models directly on cluster GPU nodes.",
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-gold-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-inherit transition-colors duration-300">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
                 </svg>
             ),
@@ -335,7 +433,7 @@ export default function JoinHiveMind() {
             title: "AI Research",
             desc: "Collaborate on cutting-edge research and emerging technologies. Co-author papers and participate in global AI conferences.",
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-gold-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-inherit transition-colors duration-300">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21m0 0l-.813-5.096L9 21zm0 0h4.906M12 3v3.75m0 3.75H9M12 10.5h3m-6.75 1.5h7.5M3 20.25h18" />
                     <circle cx="12" cy="9" r="6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -351,7 +449,7 @@ export default function JoinHiveMind() {
             title: "Community",
             desc: "Grow alongside passionate developers, researchers and innovators. Work in a highly collaborative peer network.",
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-gold-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-inherit transition-colors duration-300">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A12.018 12.018 0 0112 21c-1.07 0-2.115-.14-3.118-.407a12.078 12.078 0 01-3.07-1.465V19.13M3 16.056a4.125 4.125 0 017.533-2.493M3 16.056c-.502.91-.786 1.957-.786 3.07v.003c0 1.113.285 2.16.786 3.07M3 16.056A4.125 4.125 0 003 19.13M12 11.25a3 3 0 100-6 3 3 0 000 6zm6.5 1.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm-13 0a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
                 </svg>
             ),
@@ -366,7 +464,7 @@ export default function JoinHiveMind() {
             title: "Hackathons",
             desc: "Participate in workshops, lab meetups and national hackathons. Prototype and deploy live builds rapidly.",
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-gold-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-inherit transition-colors duration-300">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-6.75a1.125 1.125 0 00-1.125 1.125v3.375m9 0h-9m9 0V9.75M7.5 18.75V9.75m0 0A3.375 3.375 0 0110.875 6.375h2.25A3.375 3.375 0 0116.5 9.75m-9 0h9" />
                 </svg>
             ),
@@ -379,22 +477,13 @@ export default function JoinHiveMind() {
         }
     ];
 
-    const lifeTimeline = [
-        { title: "Weekly Sessions", desc: "Collaborative learning circles covering advanced AI theory, model architectures, and hardware logic." },
-        { title: "Hands-on Development", desc: "Coding and deploying microservices, training deep learning neural nets, and building robotics prototypes." },
-        { title: "Research Meetings", desc: "Open critiques of newly published papers from top-tier AI venues like NeurIPS, CVPR, and ICRA." },
-        { title: "Workshops", desc: "Practical hands-on lab meetups focusing on compute platforms, GPU acceleration, and systems programming." },
-        { title: "Hackathons", desc: "Sprints to rapidly build proof-of-concept intelligence apps and compete in nationwide hackathons." },
-        { title: "Project Showcase", desc: "Showcasing built models and AI solutions to mentors, research committees, and corporate advisors." }
-    ];
-
     const selectionSteps = [
         {
             step: "Step 1",
             title: "Application Submission",
             desc: "Complete the application form and tell us about yourself, your interests and your experience.",
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-gold-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-inherit transition-colors duration-300">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
             )
@@ -404,7 +493,7 @@ export default function JoinHiveMind() {
             title: "Application Review",
             desc: "Our team reviews your profile, skills and interests to understand how you can contribute to HiveMind.",
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-gold-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-inherit transition-colors duration-300">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             )
@@ -414,18 +503,8 @@ export default function JoinHiveMind() {
             title: "Technical Discussion",
             desc: "A friendly technical discussion to understand your learning approach, problem-solving ability and passion for technology.",
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-gold-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-inherit transition-colors duration-300">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm1.94 9.876c-.055-.44-.128-.88-.22-1.314-.117-.55-.66-1.171-1.25-1.171H4.875c-.59 0-1.133.621-1.25 1.17-.092.435-.165.875-.22 1.315M16.5 9.75a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm1.94 9.876c-.055-.44-.128-.88-.22-1.314-.117-.55-.66-1.171-1.25-1.171h-2.205c-.59 0-1.133.621-1.25 1.17-.092.435-.165.875-.22 1.315M21.75 9.75a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm1.94 9.876c-.055-.44-.128-.88-.22-1.314-.117-.55-.66-1.171-1.25-1.171h-2.205c-.59 0-1.133.621-1.25 1.17-.092.435-.165.875-.22 1.315" />
-                </svg>
-            )
-        },
-        {
-            step: "Step 4",
-            title: "Interview Invitation",
-            desc: "Shortlisted applicants receive an invitation to join the final discussion and become part of HiveMind.",
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-gold-primary">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
             )
         }
@@ -436,24 +515,76 @@ export default function JoinHiveMind() {
         { question: "Do I need prior experience?", answer: "Prior research experience is not required. While familiarity with programming concepts (Python, C++) is highly beneficial, we look for high learning velocity and problem-solving aptitude." },
         { question: "Is there an interview?", answer: "Yes. Once your written application is reviewed, we host a friendly technical discussion. This is a conversational review of your learning methodology, passion, and past small builds." },
         { question: "How much time should I contribute?", answer: "Lab members contribute at least 10 hours per week on average. This ensures consistent progress across team sprint cycles and project deliverables." },
-        { question: "Can students from any department apply?", answer: "Yes. Although most projects run in the intersection of Computing and Electronics, students from any branch who can demonstrate coding or hardware skills are highly encouraged to join." },
-        { question: "How will I know my application status?", answer: "All status updates are updated directly on the admin dashboard, and candidates will receive direct communications via Email/Contact numbers once decisions are finalized." }
+        {
+            question: "Can students from any department apply?",
+            answer: "Yes. Students from any department can apply. We welcome anyone with curiosity, passion for technology, and a strong willingness to learn and build."
+        },
+        {
+            question: "How will I know my application status?",
+            answer: "Application updates will be sent to your registered email address. Shortlisted applicants will receive further details about the technical discussion and interview process."
+        }
     ];
 
     return (
         <div className="min-h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-            <Navbar />
+            {/* Full-Screen Submission Loader */}
+            <AnimatePresence>
+                {submitting && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="fixed inset-0 z-[99999] flex flex-col items-center justify-center"
+                        style={{ backgroundColor: "rgba(5, 5, 5, 0.92)", backdropFilter: "blur(12px)" }}
+                    >
+                        {/* Spinning ring */}
+                        <div className="relative mb-8">
+                            <div
+                                className="w-16 h-16 rounded-full border-[3px] border-white/5"
+                                style={{ borderTopColor: "#FFC107", animation: "spin 1s linear infinite" }}
+                            />
+                            <div
+                                className="absolute inset-0 w-16 h-16 rounded-full border-[3px] border-transparent"
+                                style={{ borderBottomColor: "rgba(255, 193, 7, 0.3)", animation: "spin 1.5s linear infinite reverse" }}
+                            />
+                            {/* Inner glow dot */}
+                            <div
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-gold-primary"
+                                style={{ animation: "pulse 1.5s ease-in-out infinite", boxShadow: "0 0 20px rgba(255, 193, 7, 0.5)" }}
+                            />
+                        </div>
+                        {/* Text */}
+                        <p
+                            className="text-[11px] font-extrabold uppercase tracking-[0.35em] text-white/70"
+                            style={{ animation: "pulse 2s ease-in-out infinite" }}
+                        >
+                            Submitting Application
+                        </p>
+                        <p className="text-[9px] text-white/30 mt-2 tracking-widest uppercase font-bold">
+                            Please wait...
+                        </p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <Navbar showSplash={showSplash} />
 
             {/* SECTION 1: HERO */}
-            <section className="relative h-screen w-full flex flex-col items-center justify-center text-center px-6 overflow-hidden">
-                <HoneycombPattern className="opacity-[0.1]" />
+            <section
+                className="relative h-screen w-full flex flex-col items-center justify-center text-center px-6 overflow-hidden bg-cover bg-center bg-no-repeat bg-fixed z-10"
+                style={{ backgroundImage: "url('/assets/join_bg.png')" }}
+            >
+                {/* Atmospheric dark overlay backdrop */}
+                <div className="absolute inset-0 bg-[#040406]/45 shadow-[inset_0_0_150px_rgba(0,0,0,0.7)] z-0"></div>
+
                 <NeuralNetworkLines />
                 <FloatingParticles />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,193,7,0.035)_0%,transparent_60%)] pointer-events-none z-0" />
 
-                <div className="max-w-3xl z-10 flex flex-col items-center">
+                <div className="relative max-w-3xl z-10 flex flex-col items-center">
                     <motion.span
                         initial={{ opacity: 0, y: -12, letterSpacing: "0.1em" }}
                         animate={{ opacity: 1, y: 0, letterSpacing: "0.4em" }}
@@ -467,9 +598,10 @@ export default function JoinHiveMind() {
                         initial={{ opacity: 0, y: 30, scale: 0.97 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
-                        className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 uppercase"
+                        className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1] mb-6 uppercase filter drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]"
                     >
-                        Join HiveMind
+                        <span className="gold-sweep-text">Join </span>
+                        <span className="text-white">HiveMind</span>
                     </motion.h1>
 
                     <motion.p
@@ -496,7 +628,7 @@ export default function JoinHiveMind() {
                             Apply Now
                         </motion.button>
                         <motion.button
-                            onClick={handleScrollToWhy}
+                            onClick={() => navigate("/")}
                             whileHover={{ scale: 1.04, translateY: -2 }}
                             whileTap={{ scale: 0.97 }}
                             className="bg-transparent border border-white/10 hover:border-gold-primary/40 text-white text-[11px] font-extrabold uppercase py-3.5 px-8 rounded-full cursor-pointer transition-colors duration-300 tracking-widest"
@@ -509,7 +641,6 @@ export default function JoinHiveMind() {
 
             {/* SECTION 2: WHY JOIN HIVEMIND (2x2 Grid) */}
             <section id="why-join" className="relative py-24 px-6 md:px-[8%] bg-[#050505] z-10 border-t border-white/5">
-                <HoneycombPattern className="opacity-[0.02]" />
                 <div className="max-w-5xl mx-auto relative z-10">
                     <SectionHeader eyebrow="Capabilities & Culture" title="Why Join HiveMind" />
 
@@ -517,18 +648,19 @@ export default function JoinHiveMind() {
                         {whyJoinCards.map((card, idx) => (
                             <motion.div
                                 key={idx}
-                                initial={{ opacity: 0, y: 24 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                whileHover={{ y: -6, boxShadow: "0 15px_30px rgba(255,193,7,0.06)" }}
-                                viewport={{ once: false, amount: 0.2 }}
-                                transition={{ duration: 0.5, delay: idx * 0.08, ease: "easeOut" }}
-                                className="bg-white/[0.02] border border-white/5 hover:border-gold-primary/40 rounded-2xl p-8 flex flex-col justify-between h-64 relative group overflow-hidden cursor-pointer"
+                                custom={idx}
+                                initial="hidden"
+                                whileInView="visible"
+                                whileHover={{ y: -8 }}
+                                viewport={{ once: false, amount: 0.15 }}
+                                variants={cardVariants}
+                                className="bg-white/[0.02] border border-white/5 hover:border-gold-primary/30 rounded-2xl p-8 flex flex-col justify-start h-64 relative group overflow-hidden cursor-pointer transition-[border-color,box-shadow,background-color] duration-400 hover:shadow-[0_15px_35px_rgba(0,0,0,0.5),_0_0_20px_rgba(255,193,7,0.05)] before:content-[''] before:absolute before:top-0 before:left-0 before:w-full before:h-full before:bg-[radial-gradient(circle_at_top,rgba(255,193,7,0.05)_0%,transparent_60%)] before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-400"
                             >
                                 {/* Background illustration */}
                                 {card.illustration}
 
-                                <div>
-                                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 group-hover:bg-gold-primary group-hover:text-black transition-colors duration-300">
+                                <div className="relative z-10">
+                                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-gold-primary flex items-center justify-center mb-6 group-hover:bg-gold-primary group-hover:text-[#050505] transition-colors duration-300 shadow-[0_0_15px_rgba(255,193,7,0.05)] group-hover:shadow-[0_0_20px_rgba(255,193,7,0.4)] group-hover:scale-110">
                                         {card.icon}
                                     </div>
                                     <h3 className="text-sm font-bold text-white uppercase tracking-wide mb-3 group-hover:text-gold-primary transition-colors duration-300">
@@ -538,67 +670,15 @@ export default function JoinHiveMind() {
                                         {card.desc}
                                     </p>
                                 </div>
-
-                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-gold-primary/60 group-hover:text-gold-primary transition-colors duration-300 pt-4">
-                                    <span>Explore opportunities</span>
-                                    <span className="transform group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
-                                </div>
                             </motion.div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* SECTION 3: LIFE AT HIVEMIND (TIMELINE) */}
-            <section className="relative py-24 px-6 md:px-[8%] bg-[#050505] z-10 border-t border-white/5">
-                <HoneycombPattern className="opacity-[0.08]" />
-                <div className="max-w-4xl mx-auto relative z-10">
-                    <SectionHeader eyebrow="Experiences" title="Life at HiveMind" />
-
-                    {/* Centered vertical chronological list */}
-                    <div className="flex flex-col items-center space-y-12">
-                        {lifeTimeline.map((item, idx) => {
-                            const isLast = idx === lifeTimeline.length - 1;
-                            return (
-                                <motion.div
-                                    key={idx}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: false, amount: 0.2 }}
-                                    transition={{ duration: 0.5, delay: idx * 0.06, ease: "easeOut" }}
-                                    className="flex flex-col items-center text-center w-full max-w-lg"
-                                >
-                                    <div className="bg-white/[0.02] border border-white/5 hover:border-gold-primary/20 rounded-2xl p-6 w-full transition-all duration-300">
-                                        <h4 className="text-xs font-bold text-gold-primary uppercase tracking-wider mb-2">
-                                            {item.title}
-                                        </h4>
-                                        <p className="text-xs text-[#9D9D9D] leading-relaxed">
-                                            {item.desc}
-                                        </p>
-                                    </div>
-
-                                    {/* Indicator Dot */}
-                                    <div className="w-2.5 h-2.5 rounded-full bg-gold-primary shadow-[0_0_8px_#FFC107] my-3 z-10" />
-
-                                    {/* Connector Arrow Down */}
-                                    {!isLast && (
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-[1px] h-12 bg-white/10" />
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" className="text-white/20 mt-1" viewBox="0 0 16 16">
-                                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </section>
 
             {/* SECTION 4: SELECTION PROCESS (HORIZONTAL TIMELINE) */}
             <section className="relative py-24 px-6 md:px-[8%] bg-[#050505] z-10 border-t border-white/5">
-                <HoneycombPattern className="opacity-[0.02]" />
                 <div className="max-w-5xl mx-auto relative z-10">
                     <SectionHeader eyebrow="Milestones" title="Selection Process" />
 
@@ -621,8 +701,7 @@ export default function JoinHiveMind() {
                                 {[
                                     { label: "Submit", text: "Application" },
                                     { label: "Review", text: "Evaluation" },
-                                    { label: "Technical", text: "Discussion" },
-                                    { label: "Interview", text: "Invitation" }
+                                    { label: "Technical", text: "Discussion" }
                                 ].map((node, index) => (
                                     <div key={index} className="flex flex-col items-center w-24">
                                         <motion.div
@@ -651,23 +730,24 @@ export default function JoinHiveMind() {
                     </div>
 
                     {/* Step Cards Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12">
                         {selectionSteps.map((step, idx) => (
                             <motion.div
                                 key={idx}
-                                initial={{ opacity: 0, y: 24 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                whileHover={{ y: -4, boxShadow: "0 15px 35px rgba(0,0,0,0.5)" }}
+                                custom={idx}
+                                initial="hidden"
+                                whileInView="visible"
+                                whileHover={{ y: -8 }}
                                 viewport={{ once: false, amount: 0.15 }}
-                                transition={{ duration: 0.45, delay: idx * 0.08, ease: "easeOut" }}
-                                className="bg-white/[0.02] border border-white/5 hover:border-gold-primary/30 rounded-2xl p-6 flex flex-col justify-between min-h-[220px] text-left group"
+                                variants={cardVariants}
+                                className="bg-white/[0.02] border border-white/5 hover:border-gold-primary/30 rounded-2xl p-6 flex flex-col justify-between min-h-[220px] text-left group relative overflow-hidden cursor-pointer transition-[border-color,box-shadow,background-color] duration-400 hover:shadow-[0_15px_35px_rgba(0,0,0,0.5),_0_0_20px_rgba(255,193,7,0.05)] before:content-[''] before:absolute before:top-0 before:left-0 before:w-full before:h-full before:bg-[radial-gradient(circle_at_top,rgba(255,193,7,0.05)_0%,transparent_60%)] before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-400"
                             >
-                                <div>
+                                <div className="relative z-10">
                                     <div className="flex justify-between items-center mb-6">
                                         <span className="text-[9px] font-black uppercase text-gold-primary tracking-wider">
                                             {step.step}
                                         </span>
-                                        <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:bg-gold-primary group-hover:text-black transition-all duration-300">
+                                        <div className="p-2 rounded-xl bg-white/5 border border-white/10 text-gold-primary flex items-center justify-center group-hover:bg-gold-primary group-hover:text-[#050505] transition-all duration-300 shadow-[0_0_15px_rgba(255,193,7,0.05)] group-hover:shadow-[0_0_20px_rgba(255,193,7,0.4)] group-hover:scale-110">
                                             {step.icon}
                                         </div>
                                     </div>
@@ -686,7 +766,6 @@ export default function JoinHiveMind() {
 
             {/* SECTION 5: FAQ */}
             <section className="relative py-24 px-6 md:px-[8%] bg-[#050505] z-10 border-t border-white/5">
-                <HoneycombPattern className="opacity-[0.08]" />
                 <div className="max-w-3xl mx-auto relative z-10">
                     <SectionHeader eyebrow="FAQ" title="Frequently Asked Questions" />
 
@@ -736,7 +815,6 @@ export default function JoinHiveMind() {
 
             {/* PUBLIC MEMBERSHIP FORM CONTAINER */}
             <section id="application-form" className="relative py-24 px-6 md:px-[8%] bg-[#050505] z-10 border-t border-white/5">
-                <HoneycombPattern className="opacity-[0.02]" />
                 <div className="max-w-4xl mx-auto text-center relative z-10">
                     <SectionHeader eyebrow="Registration" title="Apply For Membership" />
 
@@ -779,7 +857,7 @@ export default function JoinHiveMind() {
                                     Application Received
                                 </h3>
                                 <p className="text-xs text-[#9D9D9D] leading-relaxed mb-8 uppercase tracking-wider font-semibold">
-                                    Thank you for applying! Your details are stored securely. Our core committee will review your resume and reach out with updates.
+                                    Thanks for applying.We will reach out you soon
                                 </p>
                                 <a
                                     href="/"
@@ -866,34 +944,22 @@ export default function JoinHiveMind() {
 
                                     {/* Academic Details */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] font-bold text-[#9D9D9D] uppercase tracking-wider">Department *</label>
-                                            <select
-                                                required
-                                                className="bg-[#171717] border border-white/5 rounded-xl py-3 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors"
-                                                value={formValues.dept}
-                                                onChange={(e) => setFormValues({ ...formValues, dept: e.target.value })}
-                                            >
-                                                <option value="" className="bg-[#171717]">Select Department</option>
-                                                {masterOptions.filter(o => o.category === "department").map(o => (
-                                                    <option key={o._id} value={o.value} className="bg-[#171717]">{o.value}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] font-bold text-[#9D9D9D] uppercase tracking-wider">Year of Study *</label>
-                                            <select
-                                                required
-                                                className="bg-[#171717] border border-white/5 rounded-xl py-3 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors"
-                                                value={formValues.year}
-                                                onChange={(e) => setFormValues({ ...formValues, year: e.target.value as any })}
-                                            >
-                                                <option value="" className="bg-[#171717]">Select Year</option>
-                                                {masterOptions.filter(o => o.category === "year").map(o => (
-                                                    <option key={o._id} value={o.value} className="bg-[#171717]">{o.value} Year</option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                        <CustomSingleSelect
+                                            label="Department"
+                                            required
+                                            options={masterOptions.filter(o => o.category === "department").map(o => ({ value: o.value, label: o.value }))}
+                                            value={formValues.dept}
+                                            onChange={(val) => setFormValues({ ...formValues, dept: val })}
+                                            placeholder="Select Department"
+                                        />
+                                        <CustomSingleSelect
+                                            label="Year of Study"
+                                            required
+                                            options={masterOptions.filter(o => o.category === "year").map(o => ({ value: o.value, label: `${o.value} Year` }))}
+                                            value={formValues.year}
+                                            onChange={(val) => setFormValues({ ...formValues, year: val as any })}
+                                            placeholder="Select Year"
+                                        />
                                     </div>
 
                                     {/* Profiles & Resume */}
@@ -970,28 +1036,48 @@ export default function JoinHiveMind() {
                                     </div>
 
                                     {/* Focus Areas */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="flex flex-col gap-6">
+                                        <DomainMultiSelect
+                                            label="Domain of Interest *"
+                                            domains={domainsList}
+                                            selectedNames={formValues.domainOfInterest ? formValues.domainOfInterest.split(", ").map(x => x.trim()).filter(Boolean) : []}
+                                            onChange={(vals) => setFormValues({ ...formValues, domainOfInterest: vals.join(", ") })}
+                                        />
                                         <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] font-bold text-[#9D9D9D] uppercase tracking-wider">Domain of Interest *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="e.g. Computer Vision"
-                                                className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors"
-                                                value={formValues.domainOfInterest}
-                                                onChange={(e) => setFormValues({ ...formValues, domainOfInterest: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] font-bold text-[#9D9D9D] uppercase tracking-wider">Programming Languages (comma-separated) *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="e.g. Python, C++, Go"
-                                                className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors"
-                                                value={formValues.programmingLanguages}
-                                                onChange={(e) => setFormValues({ ...formValues, programmingLanguages: e.target.value })}
-                                            />
+                                            <label className="text-[10px] font-bold text-[#9D9D9D] uppercase tracking-wider">Programming Languages *</label>
+                                            
+                                            {/* Selectable Chip buttons */}
+                                            <div className="flex flex-wrap gap-1.5 p-3.5 bg-white/[0.01] border border-white/5 rounded-xl">
+                                                {masterOptions.filter(o => o.category === "programming_language").map(lang => {
+                                                    const currentList = formValues.programmingLanguages
+                                                        .split(",")
+                                                        .map(l => l.trim())
+                                                        .filter(Boolean);
+                                                    const isSelected = currentList.includes(lang.value);
+                                                    return (
+                                                        <button
+                                                            key={lang._id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                let next: string[];
+                                                                if (isSelected) {
+                                                                    next = currentList.filter(l => l !== lang.value);
+                                                                } else {
+                                                                    next = [...currentList, lang.value];
+                                                                }
+                                                                setFormValues({ ...formValues, programmingLanguages: next.join(", ") });
+                                                            }}
+                                                            className={`px-4.5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border cursor-pointer ${
+                                                                isSelected
+                                                                    ? "bg-gold-primary/10 border-gold-primary/25 text-gold-primary [text-shadow:0_0_8px_rgba(255,193,7,0.2)]"
+                                                                    : "bg-white/[0.02] border-white/5 text-[#888888] hover:text-white hover:border-white/10"
+                                                            }`}
+                                                        >
+                                                            {lang.value}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1013,7 +1099,7 @@ export default function JoinHiveMind() {
                                                 type="number"
                                                 required
                                                 min="1"
-                                                className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors"
+                                                className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors font-semibold"
                                                 value={formValues.hoursPerWeek}
                                                 onChange={(e) => setFormValues({ ...formValues, hoursPerWeek: parseInt(e.target.value) || 0 })}
                                             />
@@ -1024,7 +1110,7 @@ export default function JoinHiveMind() {
                                                 type="text"
                                                 required
                                                 placeholder="e.g. Website, Professor, Senior"
-                                                className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors"
+                                                className="bg-white/[0.02] border border-white/5 rounded-xl py-3 px-4 text-white text-xs focus:outline-none focus:border-gold-primary transition-colors font-semibold"
                                                 value={formValues.howDidYouHear}
                                                 onChange={(e) => setFormValues({ ...formValues, howDidYouHear: e.target.value })}
                                             />
@@ -1044,9 +1130,7 @@ export default function JoinHiveMind() {
                 </div>
             </section>
 
-            <footer className="z-10 py-8 border-t border-white/5 text-center bg-[#050505] text-[10px] text-[#9D9D9D] uppercase tracking-widest font-bold">
-                © {new Date().getFullYear()} HiveMind Sathyabama. All rights reserved.
-            </footer>
+            <Footer />
         </div>
     );
 }

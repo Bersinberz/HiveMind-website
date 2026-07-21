@@ -5,7 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteProject = exports.updateProject = exports.createProject = exports.getProjects = void 0;
 const Project_1 = __importDefault(require("../models/Project"));
+const Domain_1 = __importDefault(require("../models/Domain"));
+const Technology_1 = __importDefault(require("../models/Technology"));
 const cloudinary_1 = require("../utils/cloudinary");
+const escapeRegex = (str) => {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
 // GET /api/v1/projects
 const getProjects = async (req, res) => {
@@ -63,11 +68,22 @@ const createProject = async (req, res) => {
         if (liveDemo && liveDemo.trim() !== "" && !urlRegex.test(liveDemo)) {
             return res.status(400).json({ success: false, message: "Please provide a valid Live Demo URL." });
         }
+        // Resolve Domain and Technology ObjectIds
+        const domainObjects = await Domain_1.default.find({
+            name: { $in: domainParsed.map(d => new RegExp(`^${escapeRegex(d)}$`, "i")) }
+        });
+        const domainIds = domainObjects.map(d => d._id);
+        const techObjects = await Technology_1.default.find({
+            name: { $in: techStackParsed.map(t => new RegExp(`^${escapeRegex(t)}$`, "i")) }
+        });
+        const techIds = techObjects.map(t => t._id);
         const newProject = new Project_1.default({
             title: title.trim(),
             description: description.trim(),
             domain: domainParsed,
+            domains: domainIds,
             techStack: techStackParsed,
+            technologies: techIds,
             github: github.trim(),
             liveDemo: liveDemo ? liveDemo.trim() : "",
             thumbnail,
@@ -121,6 +137,10 @@ const updateProject = async (req, res) => {
                 return res.status(400).json({ success: false, message: "Please select at least one domain." });
             }
             project.domain = domainParsed;
+            const domainObjects = await Domain_1.default.find({
+                name: { $in: domainParsed.map(d => new RegExp(`^${escapeRegex(d)}$`, "i")) }
+            });
+            project.domains = domainObjects.map(d => d._id);
         }
         if (techStack !== undefined) {
             let techStackParsed = [];
@@ -134,6 +154,10 @@ const updateProject = async (req, res) => {
                 return res.status(400).json({ success: false, message: "Please provide a valid tech stack with at least one technology." });
             }
             project.techStack = techStackParsed;
+            const techObjects = await Technology_1.default.find({
+                name: { $in: techStackParsed.map(t => new RegExp(`^${escapeRegex(t)}$`, "i")) }
+            });
+            project.technologies = techObjects.map(t => t._id);
         }
         if (github !== undefined) {
             if (!urlRegex.test(github)) {

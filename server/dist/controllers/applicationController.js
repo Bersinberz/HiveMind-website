@@ -7,6 +7,8 @@ exports.deleteApplication = exports.updateApplicationStatus = exports.getApplica
 const Application_1 = __importDefault(require("../models/Application"));
 const cloudinary_1 = require("../utils/cloudinary");
 const CommunitySettings_1 = __importDefault(require("../models/CommunitySettings"));
+const mailer_1 = require("../utils/mailer");
+const emailTemplates_1 = require("../utils/emailTemplates");
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
 // POST /api/v1/applications/apply
@@ -100,6 +102,35 @@ const applyMember = async (req, res) => {
             status: "Pending"
         });
         await newApplicant.save();
+        // Send email notifications in the background (non-blocking)
+        (async () => {
+            try {
+                const candidateWelcomeHtml = (0, emailTemplates_1.getCandidateWelcomeEmail)(newApplicant.fullname, newApplicant.dept, newApplicant.year, newApplicant.registerNumber);
+                // Send to candidate
+                await (0, mailer_1.sendEmail)({
+                    to: newApplicant.email,
+                    subject: "Application Received - HiveMind Community",
+                    html: candidateWelcomeHtml
+                });
+                // Send to team leads
+                const leadsEnv = process.env.TEAM_LEADS_EMAILS || "lead1@hivemind.org,lead2@hivemind.org";
+                const leadsEmails = leadsEnv
+                    .split(",")
+                    .map(e => e.trim())
+                    .filter(Boolean);
+                if (leadsEmails.length > 0) {
+                    const leadsNotificationHtml = (0, emailTemplates_1.getLeadsNotificationEmail)(newApplicant.fullname, newApplicant.registerNumber, newApplicant.email, newApplicant.phoneNumber, newApplicant.dept, newApplicant.year, newApplicant.domainOfInterest, newApplicant.programmingLanguages.join(", "), newApplicant.whyJoin, newApplicant.howDidYouHear, newApplicant.resume, newApplicant.linkedin, newApplicant.github || "", newApplicant.portfolio || "");
+                    await (0, mailer_1.sendEmail)({
+                        to: leadsEmails.join(","),
+                        subject: `[New Member Application] ${newApplicant.fullname} - ${newApplicant.dept}`,
+                        html: leadsNotificationHtml
+                    });
+                }
+            }
+            catch (mailErr) {
+                console.error("Failed to send application notification emails in background:", mailErr);
+            }
+        })();
         return res.status(201).json({
             success: true,
             message: "Your application was submitted successfully! The team will review it and reach out shortly.",
@@ -128,7 +159,7 @@ exports.getApplications = getApplications;
 const updateApplicationStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, interviewDate, interviewTime } = req.body;
         const validStatuses = ["Pending", "Interviewed", "Approved", "Rejected"];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ success: false, message: "Status must be Pending, Interviewed, Approved, or Rejected." });
@@ -138,10 +169,48 @@ const updateApplicationStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: "Applicant record not found." });
         }
         application.status = status;
+        // Save interview schedule if status is Interviewed or if they are provided
+        if (interviewDate !== undefined) {
+            application.interviewDate = interviewDate;
+        }
+        if (interviewTime !== undefined) {
+            application.interviewTime = interviewTime;
+        }
         await application.save();
+        // Trigger emails in background depending on the new status
+        (async () => {
+            try {
+                let subject = "";
+                let html = "";
+                if (status === "Interviewed") {
+                    const dateVal = interviewDate || application.interviewDate || "";
+                    const timeVal = interviewTime || application.interviewTime || "";
+                    subject = "Technical Discussion Invitation - HiveMind Community";
+                    html = (0, emailTemplates_1.getInterviewInvitationEmail)(application.fullname, dateVal, timeVal);
+                }
+                else if (status === "Approved") {
+                    subject = "Welcome to HiveMind!";
+                    html = (0, emailTemplates_1.getCandidateAcceptanceEmail)(application.fullname);
+                }
+                else if (status === "Rejected") {
+                    subject = "HiveMind Application Status Update";
+                    html = (0, emailTemplates_1.getCandidateRejectionEmail)(application.fullname);
+                }
+                if (html && subject) {
+                    await (0, mailer_1.sendEmail)({
+                        to: application.email,
+                        subject,
+                        html
+                    });
+                }
+            }
+            catch (mailErr) {
+                console.error(`Failed to send status update email in background (status: ${status}):`, mailErr);
+            }
+        })();
         return res.status(200).json({
             success: true,
-            message: "Applicant status updated successfully.",
+            message: `Applicant status updated to ${status} successfully.`,
             application
         });
     }
