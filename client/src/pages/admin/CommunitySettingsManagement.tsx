@@ -7,6 +7,7 @@ import Toast from "../../compoenets/Toast";
 import axiosInstance from "../../services/axiosInstance";
 import CommunitySettingsServices, { type ITestimonial } from "../../services/admin/CommunitySettingsServices";
 import AdminSidebar from "../../compoenets/AdminSidebar";
+import Portal from "../../compoenets/Portal";
 
 export default function CommunitySettingsManagement() {
     const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function CommunitySettingsManagement() {
     const [aboutCommunity, setAboutCommunity] = useState("");
     const [voices, setVoices] = useState<ITestimonial[]>([]);
     const [primaryEmail, setPrimaryEmail] = useState("");
-    const [contactNumber, setContactNumber] = useState("");
+    const [contactNumber, setContactNumber] = useState("+91 ");
     const [tagline, setTagline] = useState("");
     const [foundedYear, setFoundedYear] = useState("");
     const [location, setLocation] = useState("");
@@ -63,6 +64,7 @@ export default function CommunitySettingsManagement() {
 
     // Delete confirmation state
     const [voiceToDeleteIndex, setVoiceToDeleteIndex] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const deleteImageFromCloudinary = async (url: string) => {
         if (!url || !url.includes("res.cloudinary.com")) return;
@@ -80,7 +82,7 @@ export default function CommunitySettingsManagement() {
                 setAboutCommunity(res.settings.aboutCommunity);
                 setVoices(res.settings.communityVoices || []);
                 setPrimaryEmail(res.settings.primaryEmail || "");
-                setContactNumber(res.settings.contactNumber || "");
+                setContactNumber(res.settings.contactNumber || "+91 ");
                 setTagline(res.settings.tagline || "");
                 setFoundedYear(res.settings.foundedYear || "");
                 setLocation(res.settings.location || "");
@@ -110,6 +112,17 @@ export default function CommunitySettingsManagement() {
                 navigate("/admin/login");
             });
     }, [navigate]);
+
+    useEffect(() => {
+        if (isVoiceModalOpen || voiceToDeleteIndex !== null || isCropping || saving) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [isVoiceModalOpen, voiceToDeleteIndex, isCropping, saving]);
 
 
     // --- Circle Cropper Event Handlers ---
@@ -317,17 +330,27 @@ export default function CommunitySettingsManagement() {
     };
 
     const handleConfirmDeleteVoice = (index: number) => {
+        if (voices.length <= 1) {
+            setToast({ message: "At least one community voice is required. You can edit this voice instead of deleting it.", type: "error" });
+            return;
+        }
         setVoiceToDeleteIndex(index);
     };
 
-    const executeDeleteVoice = () => {
+    const executeDeleteVoice = async () => {
         if (voiceToDeleteIndex !== null) {
             const target = voices[voiceToDeleteIndex];
-            if (target.pic) {
-                deleteImageFromCloudinary(target.pic);
+            setIsDeleting(true);
+            try {
+                if (target.pic) {
+                    await deleteImageFromCloudinary(target.pic);
+                }
+            } catch (err) {
+            } finally {
+                setVoices(prev => prev.filter((_, i) => i !== voiceToDeleteIndex));
+                setVoiceToDeleteIndex(null);
+                setIsDeleting(false);
             }
-            setVoices(prev => prev.filter((_, i) => i !== voiceToDeleteIndex));
-            setVoiceToDeleteIndex(null);
         }
     };
 
@@ -373,7 +396,11 @@ export default function CommunitySettingsManagement() {
 
     return (
         <div className="min-h-screen bg-[#050505] flex text-white relative admin-workspace">
-            {saving && <AdminLoader />}
+            {saving && (
+                <Portal>
+                    <AdminLoader />
+                </Portal>
+            )}
             {/* Ambient Background Glows */}
             <div className="absolute top-[5%] right-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
             <div className="absolute bottom-[5%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
@@ -676,7 +703,8 @@ export default function CommunitySettingsManagement() {
 
             {/* MODAL: ADD / EDIT VOICE */}
             {isVoiceModalOpen && (
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-[1000] p-4 overflow-y-auto">
+                <Portal>
+                    <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-[1000] p-4 overflow-y-auto">
                     <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-fade-in text-left">
                         <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
                             <h3 className="text-base sm:text-lg font-black uppercase tracking-wider text-white">
@@ -802,18 +830,29 @@ export default function CommunitySettingsManagement() {
                             <button
                                 type="button"
                                 onClick={saveVoiceForm}
-                                className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black border-none py-2.5 px-6 rounded-full text-[10px] font-extrabold uppercase cursor-pointer shadow-[0_4px_15px_rgba(255,193,7,0.1)] transition-all hover:scale-102"
+                                disabled={isUploading}
+                                className="bg-gradient-to-br from-gold-primary to-[#D4AF37] text-black border-none py-2.5 px-6 rounded-full text-[10px] font-extrabold uppercase cursor-pointer shadow-[0_4px_15px_rgba(255,193,7,0.1)] transition-all hover:scale-102 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                Confirm Voice
+                                {isUploading ? (
+                                    <>
+                                        <svg className="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Uploading...
+                                    </>
+                                ) : "Confirm Voice"}
                             </button>
                         </div>
                     </div>
                 </div>
+                </Portal>
             )}
 
             {/* MODAL: CIRCULAR IMAGE CROPPER */}
             {isCropping && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[2000] p-4">
+                <Portal>
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[2000] p-4">
                     <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.8)] text-center relative animate-fade-in">
                         <h3 className="text-base font-black uppercase tracking-wider text-white mb-2 text-left">
                             Crop Profile Photo
@@ -890,11 +929,13 @@ export default function CommunitySettingsManagement() {
                         </div>
                     </div>
                 </div>
+                </Portal>
             )}
 
             {/* MODAL: DELETE CONFIRMATION */}
             {voiceToDeleteIndex !== null && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
+                <Portal>
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
                     <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-[0_20px_50px_rgba(239,68,68,0.1)] text-center relative animate-fade-in">
                         <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -911,19 +952,30 @@ export default function CommunitySettingsManagement() {
                         <div className="flex justify-center gap-3">
                             <button
                                 onClick={() => setVoiceToDeleteIndex(null)}
-                                className="bg-transparent border border-white/10 hover:border-white/20 text-white text-[10px] font-extrabold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all"
+                                disabled={isDeleting}
+                                className="bg-transparent border border-white/10 hover:border-white/20 text-white text-[10px] font-extrabold uppercase py-2.5 px-5 rounded-full cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={executeDeleteVoice}
-                                className="bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/40 text-red-400 text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(239,68,68,0.05)]"
+                                disabled={isDeleting}
+                                className="bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/40 text-red-400 text-[10px] font-extrabold uppercase py-2.5 px-6 rounded-full cursor-pointer transition-all shadow-[0_4px_15px_rgba(239,68,68,0.05)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                Delete
+                                {isDeleting ? (
+                                    <>
+                                        <svg className="animate-spin h-3.5 w-3.5 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Deleting...
+                                    </>
+                                ) : "Delete"}
                             </button>
                         </div>
                     </div>
                 </div>
+                </Portal>
             )}
 
             {/* TOAST SYSTEM FEEDBACK */}

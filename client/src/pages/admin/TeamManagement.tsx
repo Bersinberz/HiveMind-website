@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import authService, { type AdminUser } from "../../services/admin/authService";
 import AdminLoader from "../../compoenets/AdminLoader";
@@ -21,14 +22,16 @@ export default function TeamManagement() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedDept, setSelectedDept] = useState("");
     const [selectedYear, setSelectedYear] = useState("");
-    const [selectedBatch, setSelectedBatch] = useState("");
+    const [selectedGeneration, setSelectedGeneration] = useState("");
     const [expandedMembers, setExpandedMembers] = useState<Record<string, boolean>>({});
 
     const toggleMemberExpand = (id: string) => {
-        setExpandedMembers(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
+        setExpandedMembers(prev => {
+            const isCurrentlyExpanded = !!prev[id];
+            return {
+                [id]: !isCurrentlyExpanded
+            };
+        });
     };
 
     // --- Master Data Options state ---
@@ -593,7 +596,7 @@ export default function TeamManagement() {
 
 
     const departments = masterOptions.filter(o => o.category === "department").map(o => o.value);
-    const batches = masterOptions.filter(o => o.category === "batch").map(o => o.value);
+    const generations = masterOptions.filter(o => o.category === "batch").map(o => o.value);
 
     const filteredMembers = teamMembers.filter(m => {
         const matchesSearch =
@@ -602,9 +605,9 @@ export default function TeamManagement() {
 
         const matchesDept = !selectedDept || m.department === selectedDept;
         const matchesYear = !selectedYear || m.year === selectedYear;
-        const matchesBatch = !selectedBatch || m.batch === selectedBatch;
+        const matchesGeneration = !selectedGeneration || m.batch === selectedGeneration;
 
-        return matchesSearch && matchesDept && matchesYear && matchesBatch;
+        return matchesSearch && matchesDept && matchesYear && matchesGeneration;
     });
 
     return (
@@ -720,16 +723,16 @@ export default function TeamManagement() {
 
                                     <div className="flex flex-col gap-1.5 col-span-1">
                                         <CustomSingleSelect
-                                            label="Batch"
+                                            label="Generation"
                                             bgClass="bg-[#0c0c0e] border border-white/10 py-2 px-3 text-xs h-[38px]"
                                             dropdownBgClass="bg-[#0c0c0e]"
                                             options={[
-                                                { value: "", label: "All Batches" },
-                                                ...batches.map(batch => ({ value: batch, label: batch }))
+                                                { value: "", label: "All Generations" },
+                                                ...generations.map(gen => ({ value: gen, label: gen }))
                                             ]}
-                                            value={selectedBatch}
-                                            onChange={setSelectedBatch}
-                                            placeholder="All Batches"
+                                            value={selectedGeneration}
+                                            onChange={setSelectedGeneration}
+                                            placeholder="All Generations"
                                         />
                                     </div>
                                 </div>
@@ -817,8 +820,16 @@ export default function TeamManagement() {
                                                     </div>
 
                                                     {/* Expanded Body Panel */}
-                                                    {isExpanded && (
-                                                        <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in">
+                                                    <AnimatePresence initial={false}>
+                                                        {isExpanded && (
+                                                            <motion.div
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: "auto", opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={{ duration: 0.25, ease: "easeInOut" }}
+                                                                className="overflow-hidden"
+                                                            >
+                                                                <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                                             <div className="flex flex-col gap-1.5">
                                                                 <span className="text-[11px] text-[#666666] font-semibold tracking-wide uppercase">
                                                                     {member.year} Year • Sec {member.section} • Reg: {member.registerNumber || "N/A"} • {member.email}
@@ -888,8 +899,10 @@ export default function TeamManagement() {
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                    )}
-                                                </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
                                             );
                                         })}
                                     </div>
@@ -1100,14 +1113,14 @@ export default function TeamManagement() {
                                                         placeholder="Select Year"
                                                     />
                                                     <CustomSingleSelect
-                                                        label="Batch"
+                                                        label="Generation"
                                                         required
                                                         bgClass="bg-[#0c0c0e] border border-white/10 py-2.5 px-3 text-xs h-[42px]"
                                                         dropdownBgClass="bg-[#0c0c0e]"
                                                         options={masterOptions.filter(o => o.category === "batch").map(o => ({ value: o.value, label: o.value }))}
                                                         value={formValues.batch}
                                                         onChange={(val) => setFormValues({ ...formValues, batch: val })}
-                                                        placeholder="Select Batch"
+                                                        placeholder="Select Generation"
                                                     />
                                                 </div>
                                             </div>

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import Portal from "./Portal";
 
 interface ToastProps {
     message: string;
@@ -22,7 +23,8 @@ export default function Toast({ message, type = "error", onClose, duration = 400
     const iconColor = isError ? "text-[#EF4444]" : "text-[#FFC107]";
 
     return (
-        <div className="fixed top-6 right-6 z-[10000] animate-toast-slide-in">
+        <Portal>
+            <div className="fixed top-6 right-6 z-[10000] animate-toast-slide-in">
             <style>{`
                 @keyframes toastSlideIn {
                     0% {
@@ -105,5 +107,6 @@ export default function Toast({ message, type = "error", onClose, duration = 400
                 </button>
             </div>
         </div>
-    );
+    </Portal>
+);
 }

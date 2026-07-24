@@ -331,7 +331,7 @@ export default function MasterDataManagement() {
     const categories = [
         { key: "department" as const, title: "Departments", placeholder: "e.g. CSE" },
         { key: "section" as const, title: "Sections", placeholder: "e.g. A" },
-        { key: "batch" as const, title: "Batches", placeholder: "e.g. 2023-2027" },
+        { key: "batch" as const, title: "Generations", placeholder: "e.g. GEN 01" },
         { key: "year" as const, title: "Years of Study", placeholder: "e.g. 1st" },
         { key: "programming_language" as const, title: "Programming Languages", placeholder: "e.g. Python" }
     ];

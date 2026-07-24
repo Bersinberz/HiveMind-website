@@ -35,13 +35,24 @@ export default function Footer() {
 
 
 
+    const formatPhoneNumber = (num: string) => {
+        const cleaned = num.replace(/[\s()\-]/g, "");
+        if (cleaned.startsWith("+91") && cleaned.length === 13) {
+            return `+91 ${cleaned.slice(3, 8)} ${cleaned.slice(8)}`;
+        }
+        if (cleaned.length === 10 && /^\d+$/.test(cleaned)) {
+            return `+91 ${cleaned.slice(0, 5)} ${cleaned.slice(5)}`;
+        }
+        return num;
+    };
+
     // Database fallback values
     const primaryEmail = settings?.primaryEmail || "hivemind@sathyabama.ac.in";
     const githubUrl = settings?.github || "https://github.com";
     const linkedinUrl = settings?.linkedin || "https://linkedin.com";
     const addressLocation = settings?.location || "AI Supercomputing Lab, Sathyabama Institute of Science and Technology, OMR, Chennai - 600119";
     const contactNumber = settings?.contactNumber || "+91 (44) 2450 3150";
-    const displayPhone = contactNumber.startsWith("+") ? contactNumber : `+91 ${contactNumber}`;
+    const displayPhone = formatPhoneNumber(contactNumber);
     const cleanTelNumber = contactNumber.startsWith("+") ? contactNumber : `+91${contactNumber}`;
 
     // Framer Motion Animation Variants
