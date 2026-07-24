@@ -53,6 +53,7 @@ export default function TeamManagement() {
 
     // Cloudinary Upload State
     const [isUploading, setIsUploading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
     // Deletion Modal State
@@ -161,6 +162,9 @@ export default function TeamManagement() {
 
     const handleCropTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
         if (!isDragging) return;
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         const touch = e.touches[0];
         const dx = touch.clientX - dragStart.x;
         const dy = touch.clientY - dragStart.y;
@@ -189,7 +193,9 @@ export default function TeamManagement() {
     };
 
     const fetchTeamMembers = async () => {
-        setLoadingTeam(true);
+        if (teamMembers.length === 0) {
+            setLoadingTeam(true);
+        }
         try {
             const res = await TeammanagemntServices.getTeamMembers();
             if (res.success && res.members) {
@@ -221,7 +227,7 @@ export default function TeamManagement() {
     }, [navigate]);
 
     useEffect(() => {
-        if (isModalOpen || memberToDelete) {
+        if (isModalOpen || memberToDelete || isSaving) {
             document.body.style.overflow = "hidden";
         } else {
             document.body.style.overflow = "";
@@ -229,7 +235,7 @@ export default function TeamManagement() {
         return () => {
             document.body.style.overflow = "";
         };
-    }, [isModalOpen, memberToDelete]);
+    }, [isModalOpen, memberToDelete, isSaving]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -311,34 +317,35 @@ export default function TeamManagement() {
             img.src = cropSrc;
             img.onload = async () => {
                 try {
+                    const scaleFactor = 3; // 3x scaling for high-DPI/Retina screens
                     const canvas = document.createElement("canvas");
-                    canvas.width = 320;
-                    canvas.height = 368;
+                    canvas.width = 320 * scaleFactor;
+                    canvas.height = 368 * scaleFactor;
                     const ctx = canvas.getContext("2d");
                     if (!ctx) throw new Error("Could not get 2D context");
 
                     ctx.fillStyle = "#0c0c0e";
-                    ctx.fillRect(0, 0, 320, 368);
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     const wOrig = img.naturalWidth;
                     const hOrig = img.naturalHeight;
 
-                    const scaleCover = Math.max(320 / wOrig, 368 / hOrig);
+                    const scaleCover = Math.max(canvas.width / wOrig, canvas.height / hOrig);
                     const wBase = wOrig * scaleCover;
                     const hBase = hOrig * scaleCover;
 
                     const wZoom = wBase * zoom;
                     const hZoom = hBase * zoom;
 
-                    const x0 = (320 - wZoom) / 2;
-                    const y0 = (368 - hZoom) / 2;
+                    const x0 = (canvas.width - wZoom) / 2;
+                    const y0 = (canvas.height - hZoom) / 2;
 
-                    const canvasOffsetX = offsetX;
-                    const canvasOffsetY = offsetY;
+                    const canvasOffsetX = offsetX * scaleFactor;
+                    const canvasOffsetY = offsetY * scaleFactor;
 
                     ctx.drawImage(img, x0 + canvasOffsetX, y0 + canvasOffsetY, wZoom, hZoom);
 
-                    const base64 = canvas.toDataURL("image/jpeg", 0.85);
+                    const base64 = canvas.toDataURL("image/jpeg", 0.95);
 
                     // Close cropper workspace & trigger Cloudinary upload
                     setIsCropping(false);
@@ -541,6 +548,7 @@ export default function TeamManagement() {
             return;
         }
 
+        setIsSaving(true);
         try {
             if (modalMode === "add") {
                 const res = await TeammanagemntServices.createTeamMember(formValues);
@@ -561,10 +569,13 @@ export default function TeamManagement() {
             }
         } catch (err: any) {
             setModalError(err.response?.data?.message || "An error occurred while saving the member.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const executeDeleteMember = async (id: string) => {
+        setIsSaving(true);
         try {
             const res = await TeammanagemntServices.deleteTeamMember(id);
             if (res.success) {
@@ -574,6 +585,8 @@ export default function TeamManagement() {
             }
         } catch (err) {
             alert("An error occurred while deleting.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -596,6 +609,11 @@ export default function TeamManagement() {
 
     return (
         <div className="min-h-screen bg-[#050505] flex text-white relative admin-workspace">
+            {isSaving && (
+                <Portal>
+                    <AdminLoader />
+                </Portal>
+            )}
             {/* Ambient Background Glows */}
             <div className="absolute top-[5%] right-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
             <div className="absolute bottom-[5%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(255,193,7,0.02)_0%,transparent_70%)] pointer-events-none z-0" />
@@ -609,7 +627,7 @@ export default function TeamManagement() {
             />
 
             {/* MAIN WORKSPACE */}
-            <div className={`flex-1 flex flex-col min-w-0 z-10 ${isModalOpen || memberToDelete ? "overflow-hidden" : "overflow-y-auto"}`}>
+            <div className={`flex-1 flex flex-col min-w-0 z-10 overflow-y-auto ${isModalOpen || memberToDelete || isSaving ? "pointer-events-none select-none" : ""}`}>
                 {/* Mobile Top Header */}
                 <header className="lg:hidden flex justify-between items-center bg-white/[0.02] border-b border-white/5 p-4 shadow-md backdrop-blur-md sticky top-0 z-30">
                     <div className="flex items-center gap-3">
@@ -885,8 +903,8 @@ export default function TeamManagement() {
             {/* Modals: Crop Upload / Form Modal */}
             {isModalOpen && (
                 <Portal>
-                    <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-start justify-center z-[9999] p-4 overflow-y-auto pt-10 md:pt-16">
-                        <div className={`bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-fade-in ${(isUploading || isCropping) ? "max-w-xl" : "max-w-3xl"
+                    <div className={`fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[9999] p-4 ${isCropping ? "overflow-hidden" : "overflow-y-auto overscroll-contain"}`}>
+                        <div className={`bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative animate-fade-in ${(isUploading || isCropping) ? "max-w-xl my-0" : "max-w-3xl my-8"
                             }`}>
                             {isUploading ? (
                                 <div className="flex flex-col items-center justify-center py-12 px-6 text-center select-none animate-fade-in">

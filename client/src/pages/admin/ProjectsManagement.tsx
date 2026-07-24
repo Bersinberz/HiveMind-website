@@ -337,6 +337,9 @@ export default function ProjectsManagement() {
 
     const handleCropTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
         if (!isDragging) return;
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         const touch = e.touches[0];
         const dx = touch.clientX - dragStart.x;
         const dy = touch.clientY - dragStart.y;
@@ -362,7 +365,9 @@ export default function ProjectsManagement() {
     };
 
     const fetchProjects = async () => {
-        setLoadingProjects(true);
+        if (projects.length === 0) {
+            setLoadingProjects(true);
+        }
         try {
             const res = await ProjectServices.getProjects();
             if (res.success && res.projects) {
@@ -479,34 +484,34 @@ export default function ProjectsManagement() {
             img.src = cropSrc;
             img.onload = async () => {
                 const canvas = document.createElement("canvas");
-                // 16:9 Widescreen target resolution
-                canvas.width = 640;
-                canvas.height = 360;
+                // 16:9 Widescreen target resolution (1280x720 for HD crispness)
+                canvas.width = 1280;
+                canvas.height = 720;
                 const ctx = canvas.getContext("2d");
                 if (!ctx) return;
 
                 ctx.fillStyle = "#0c0c0e";
-                ctx.fillRect(0, 0, 640, 360);
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 const wOrig = img.naturalWidth;
                 const hOrig = img.naturalHeight;
 
-                const scaleCover = Math.max(640 / wOrig, 360 / hOrig);
+                const scaleCover = Math.max(canvas.width / wOrig, canvas.height / hOrig);
                 const wBase = wOrig * scaleCover;
                 const hBase = hOrig * scaleCover;
 
                 const wZoom = wBase * zoom;
                 const hZoom = hBase * zoom;
 
-                const x0 = (640 - wZoom) / 2;
-                const y0 = (360 - hZoom) / 2;
+                const x0 = (canvas.width - wZoom) / 2;
+                const y0 = (canvas.height - hZoom) / 2;
 
-                const canvasOffsetX = offsetX * (640 / 280);
-                const canvasOffsetY = offsetY * (360 / 157.5);
+                const canvasOffsetX = offsetX * (canvas.width / 280);
+                const canvasOffsetY = offsetY * (canvas.height / 157.5);
 
                 ctx.drawImage(img, x0 + canvasOffsetX, y0 + canvasOffsetY, wZoom, hZoom);
 
-                const base64 = canvas.toDataURL("image/jpeg", 0.85);
+                const base64 = canvas.toDataURL("image/jpeg", 0.95);
 
                 // Close cropper workspace & trigger Cloudinary upload
                 setIsCropping(false);
@@ -930,8 +935,9 @@ export default function ProjectsManagement() {
 
             {/* Modals: Crop Upload / Form Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[9999] p-4 overflow-y-auto">
-                    <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-4xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative my-8 animate-fade-in">
+                <div className={`fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[9999] p-4 ${isCropping ? "overflow-hidden" : "overflow-y-auto overscroll-contain"}`}>
+                    <div className={`bg-[#0c0c0e] border border-white/10 rounded-3xl p-6 sm:p-8 w-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative animate-fade-in ${(isUploading || isCropping) ? "max-w-xl my-0" : "max-w-4xl my-8"
+                        }`}>
                         {isUploading ? (
                             <div className="flex flex-col items-center justify-center py-12 px-6 text-center select-none animate-fade-in">
                                 <div className="w-14 h-14 rounded-full border-2 border-white/5 border-t-gold-primary animate-spin mb-6" />

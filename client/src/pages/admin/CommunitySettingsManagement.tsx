@@ -139,6 +139,9 @@ export default function CommunitySettingsManagement() {
 
     const handleCropTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
         if (!isDragging) return;
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         const touch = e.touches[0];
         const dx = touch.clientX - dragStart.x;
         const dy = touch.clientY - dragStart.y;
@@ -173,20 +176,21 @@ export default function CommunitySettingsManagement() {
         img.src = cropSrc;
         img.onload = async () => {
             const canvas = document.createElement("canvas");
-            canvas.width = 300;
-            canvas.height = 300;
+            // 3x high-resolution output (900x900) for sharp community logos/avatars
+            canvas.width = 900;
+            canvas.height = 900;
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
 
             // Draw background
             ctx.fillStyle = "#0c0c0e";
-            ctx.fillRect(0, 0, 300, 300);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const wOrig = img.naturalWidth;
             const hOrig = img.naturalHeight;
 
             // Compute size to cover canvas
-            const scaleCover = Math.max(300 / wOrig, 300 / hOrig);
+            const scaleCover = Math.max(canvas.width / wOrig, canvas.height / hOrig);
             const wBase = wOrig * scaleCover;
             const hBase = hOrig * scaleCover;
 
@@ -194,16 +198,16 @@ export default function CommunitySettingsManagement() {
             const hZoom = hBase * zoom;
 
             // Center image
-            const x0 = (300 - wZoom) / 2;
-            const y0 = (300 - hZoom) / 2;
+            const x0 = (canvas.width - wZoom) / 2;
+            const y0 = (canvas.height - hZoom) / 2;
 
             // Transform offset based on crop box coordinates (240x240)
-            const canvasOffsetX = offsetX * (300 / 240);
-            const canvasOffsetY = offsetY * (300 / 240);
+            const canvasOffsetX = offsetX * (canvas.width / 240);
+            const canvasOffsetY = offsetY * (canvas.height / 240);
 
             ctx.drawImage(img, x0 + canvasOffsetX, y0 + canvasOffsetY, wZoom, hZoom);
 
-            const base64 = canvas.toDataURL("image/jpeg", 0.85);
+            const base64 = canvas.toDataURL("image/jpeg", 0.95);
 
             setIsCropping(false);
             setCropSrc("");
